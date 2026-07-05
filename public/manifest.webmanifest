@@ -2,22 +2,19 @@
   "name": "Khamala and Kshitija's Sales & Inventory",
   "short_name": "Khamala",
   "description": "Sales and inventory workspace for Khamala and Kshitija's.",
+  "id": "./",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
+  "orientation": "any",
+  "categories": ["business", "productivity"],
   "background_color": "#f8f3ef",
   "theme_color": "#4f4540",
   "icons": [
     {
-      "src": "favicon.png?v=3",
+      "src": "favicon.png?v=4",
       "sizes": "508x491",
       "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "app-icon.svg?v=3",
-      "sizes": "any",
-      "type": "image/svg+xml",
       "purpose": "any"
     }
   ]
