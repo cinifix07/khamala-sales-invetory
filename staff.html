@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Noir et Or Chocolatier - POS System</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Source+Sans+3:wght@400;600;700&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@100..900&family=Source+Sans+3:wght@100..900&display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-secondary-container": "#745c00",
+                    "surface-container-low": "#fff1ea",
+                    "on-secondary": "#ffffff",
+                    "background": "#fff8f5",
+                    "tertiary-fixed": "#e4e2de",
+                    "secondary-container": "#fed65b",
+                    "on-background": "#211a16",
+                    "surface": "#fff8f5",
+                    "surface-container-high": "#f3e5df",
+                    "on-tertiary-fixed-variant": "#474744",
+                    "tertiary-fixed-dim": "#c8c6c3",
+                    "tertiary": "#191a17",
+                    "on-primary-fixed": "#281810",
+                    "on-secondary-fixed-variant": "#574500",
+                    "secondary": "#735c00",
+                    "primary": "#25160e",
+                    "on-primary-container": "#aa9084",
+                    "inverse-surface": "#362f2b",
+                    "primary-fixed": "#fbdcce",
+                    "on-secondary-fixed": "#241a00",
+                    "surface-container": "#f9ebe4",
+                    "on-tertiary-container": "#969592",
+                    "surface-tint": "#705a4f",
+                    "outline-variant": "#d3c3bd",
+                    "surface-container-highest": "#ede0d9",
+                    "on-primary-fixed-variant": "#574238",
+                    "surface-container-lowest": "#ffffff",
+                    "surface-variant": "#ede0d9",
+                    "secondary-fixed": "#ffe088",
+                    "outline": "#81756f",
+                    "error-container": "#ffdad6",
+                    "error": "#ba1a1a",
+                    "on-tertiary-fixed": "#1b1c1a",
+                    "primary-container": "#3c2a21",
+                    "on-primary": "#ffffff",
+                    "surface-dim": "#e5d7d1",
+                    "on-tertiary": "#ffffff",
+                    "on-surface-variant": "#4f4540",
+                    "on-error-container": "#93000a",
+                    "primary-fixed-dim": "#dec1b3",
+                    "inverse-on-surface": "#fceee7",
+                    "on-error": "#ffffff",
+                    "secondary-fixed-dim": "#e9c349",
+                    "on-surface": "#211a16",
+                    "surface-bright": "#fff8f5",
+                    "tertiary-container": "#2e2e2c",
+                    "inverse-primary": "#dec1b3"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "padding-card": "24px",
+                    "gutter": "24px",
+                    "container-max": "1440px",
+                    "margin-tablet": "32px",
+                    "margin-desktop": "64px",
+                    "unit": "8px"
+            },
+            "fontFamily": {
+                    "body-lg": ["\"Source Sans 3\""],
+                    "title-lg": ["\"Source Sans 3\""],
+                    "display-lg": ["Playfair Display"],
+                    "body-md": ["\"Source Sans 3\""],
+                    "label-md": ["\"Source Sans 3\""],
+                    "headline-lg": ["Playfair Display"],
+                    "headline-md": ["Playfair Display"]
+            },
+            "fontSize": {
+                    "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                    "title-lg": ["22px", {"lineHeight": "1.4", "letterSpacing": "0.01em", "fontWeight": "600"}],
+                    "display-lg": ["56px", {"lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "body-md": ["16px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                    "label-md": ["14px", {"lineHeight": "1.2", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                    "headline-lg": ["40px", {"lineHeight": "1.2", "fontWeight": "700"}],
+                    "headline-md": ["32px", {"lineHeight": "1.3", "fontWeight": "600"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+        }
+        .cocoa-shadow {
+            box-shadow: 0 4px 20px rgba(60, 42, 33, 0.08);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #d3c3bd;
+            border-radius: 10px;
+        }
+        @keyframes subtle-fade {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-item {
+            animation: subtle-fade 0.4s ease forwards;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md selection:bg-secondary-container/30 overflow-hidden">
+<!-- Top Navigation Anchor -->
+
+<div class="flex h-screen pt-16">
+<!-- Minimalist SideNavBar -->
+<aside class="h-full w-20 fixed left-0 top-16 bg-primary-container dark:bg-tertiary-container shadow-lg flex flex-col items-center py-8 z-40">
+<nav class="flex flex-col gap-8 w-full items-center">
+<div class="flex items-center justify-center w-12 h-12 rounded-xl bg-secondary-container/10 text-secondary-fixed-dim border-l-4 border-secondary-fixed cursor-pointer">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">point_of_sale</span>
+</div>
+<div class="flex items-center justify-center w-12 h-12 text-on-primary/70 hover:bg-on-primary/5 transition-colors cursor-pointer rounded-xl">
+<span class="material-symbols-outlined">receipt_long</span>
+</div>
+
+
+</nav>
+<div class="mt-auto flex flex-col gap-6 items-center">
+<span class="material-symbols-outlined text-on-primary/70 cursor-pointer hover:text-on-primary">help_outline</span>
+<span class="material-symbols-outlined text-on-primary/70 cursor-pointer hover:text-on-primary">logout</span>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="ml-20 flex-1 flex overflow-hidden">
+<!-- Product Selection Grid -->
+<section class="flex-1 p-8 overflow-y-auto custom-scrollbar bg-surface">
+<div class="flex justify-between items-end mb-8">
+
+<div class="flex gap-4">
+<div class="bg-surface-container-highest flex items-center px-4 py-2 rounded-lg border border-outline-variant/20">
+<span class="material-symbols-outlined text-on-surface-variant mr-2">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-body-md w-48" placeholder="Search menu..." type="text"/>
+</div>
+<div class="bg-surface-container-highest p-2 rounded-lg border border-outline-variant/20 cursor-pointer">
+<span class="material-symbols-outlined">filter_list</span>
+</div>
+</div>
+</div>
+<!-- Bento-style Product Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+<!-- Product Card 1 -->
+<div class="bg-surface-container-lowest border border-outline-variant/10 rounded-xl p-4 cocoa-shadow hover:scale-[1.02] transition-transform cursor-pointer group animate-item" style="animation-delay: 0.1s;">
+<div class="aspect-square w-full rounded-lg overflow-hidden mb-4 relative">
+<div class="absolute inset-0 bg-primary/5 group-hover:bg-transparent transition-colors z-10"></div>
+<img class="w-full h-full object-cover" data-alt="A high-end studio photograph of a single dark chocolate truffle with gold flakes, sitting on a marble surface. Soft dramatic lighting from the side highlights the smooth texture of the chocolate. The background is a deep, out-of-focus cocoa brown, creating a luxurious and moody atmosphere. Minimalist and artisanal aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDXNBJBkeTCg_vg9adffCE9kKaactW38Wkfa3B_LMGKCQjsSW5vwNkR_h5QwWZgUz_12rTERjxRnizf3nbcpuPV2pyJ8nG5b8uje4h84OiFIHfVRTGp6MfcV7I55sVj3m-9ZT2rKfy3M8qz09SP61cDKOsUYaapZb_Pirp5aGHcp8A8vP587JOirdzC2C0modF2n4cXrPwXhA-1F-Yf8IkLYE-J8bRv8Pnk7H7ahnahm6oqbMvEWaDj"/>
+</div>
+<div class="flex justify-between items-start">
+<div>
+<h3 class="font-display-lg text-title-lg text-primary leading-tight">Midnight Truffle</h3>
+<p class="text-label-md text-on-surface-variant/70 uppercase tracking-widest mt-1">75% Dark Cacao</p>
+</div>
+<span class="text-secondary font-bold text-body-lg">€4.50</span>
+</div>
+</div>
+<!-- Product Card 2 -->
+<div class="bg-surface-container-lowest border border-outline-variant/10 rounded-xl p-4 cocoa-shadow hover:scale-[1.02] transition-transform cursor-pointer group animate-item" style="animation-delay: 0.15s;">
+<div class="aspect-square w-full rounded-lg overflow-hidden mb-4 relative">
+<div class="absolute inset-0 bg-primary/5 group-hover:bg-transparent transition-colors z-10"></div>
+<img class="w-full h-full object-cover" data-alt="Close-up of an elegant square praline topped with a delicate piece of real 24k gold leaf. The chocolate is a rich milk chocolate color, resting on an ivory-white ceramic plate. The lighting is bright and clean, capturing the reflective quality of the gold. High-fashion food photography style with soft shadows." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBxiT1y4V9gZFlozzEl8md0IXrCgFkwqAKSxgZKw8VAJXNDnZRupK5ZgLs8iIWMjCgCEFHJ5bhYOibbXp4HxpiDgYC2WvFd6jZJ2HeG-paJjp4nSjS2OD_vf9uflYOpzHC4ECHavUYPSJZvFQ0HL6KM-NV99koGsO-iJXSlVoBFZEtnzs4nvLOgwDhglRDZlWXgIaC8RrvDWrO6w5xLEB5K2Vs0igxMkophObPSDfwE0MHf3krJfRu-"/>
+</div>
+<div class="flex justify-between items-start">
+<div>
+<h3 class="font-display-lg text-title-lg text-primary leading-tight">Gold Leaf Praline</h3>
+<p class="text-label-md text-on-surface-variant/70 uppercase tracking-widest mt-1">Hazelnut Crème</p>
+</div>
+<span class="text-secondary font-bold text-body-lg">€6.20</span>
+</div>
+</div>
+<!-- Product Card 3 -->
+<div class="bg-surface-container-lowest border border-outline-variant/10 rounded-xl p-4 cocoa-shadow hover:scale-[1.02] transition-transform cursor-pointer group animate-item" style="animation-delay: 0.2s;">
+<div class="aspect-square w-full rounded-lg overflow-hidden mb-4 relative">
+<div class="absolute inset-0 bg-primary/5 group-hover:bg-transparent transition-colors z-10"></div>
+<img class="w-full h-full object-cover" data-alt="A delicate white chocolate ganache sphere with a light pearlescent sheen, suggestive of champagne. It sits on a textured linen cloth in a high-key, airy setting. Soft morning light creates a fresh, sophisticated mood. The overall color palette is ivory, cream, and faint gold." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD9X0_P0pZHlgFOS8FqUT2DpNdHabgX5cr3OM_bdJ1q6O7vHnu7b7s3bUBYhYRmjSoXBMNItdunYiqnst9afPqoQxRjfYqXzjSxb78XhN26vqmQAGrtSAiC-Mbcb-HMzR_9jEIf_ueLhFfgTQnydhzRoTGjWXw24_iirK0LqnX8uCNr7ZqephIWXLCeY6VKXmrNkCiHLopGeCZO6duXdHwdHuPH7H_Uz6_qdK5aysnS7_IK37o2Y4X0"/>
+</div>
+<div class="flex justify-between items-start">
+<div>
+<h3 class="font-display-lg text-title-lg text-primary leading-tight">Champagne Ganache</h3>
+<p class="text-label-md text-on-surface-variant/70 uppercase tracking-widest mt-1">Vintage Reserve</p>
+</div>
+<span class="text-secondary font-bold text-body-lg">€5.80</span>
+</div>
+</div>
+<!-- Product Card 4 -->
+<div class="bg-surface-container-lowest border border-outline-variant/10 rounded-xl p-4 cocoa-shadow hover:scale-[1.02] transition-transform cursor-pointer group animate-item" style="animation-delay: 0.25s;">
+<div class="aspect-square w-full rounded-lg overflow-hidden mb-4 relative">
+<div class="absolute inset-0 bg-primary/5 group-hover:bg-transparent transition-colors z-10"></div>
+<img class="w-full h-full object-cover" data-alt="Rich salted caramel oozing from a cracked dark chocolate shell. The shot is a macro detail showing the sticky, golden texture of the caramel against the matte chocolate. Dramatic lighting highlights the contrast between the textures. Warm, inviting tones of amber and deep brown." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAM01teUPudH2kWInH9RPdVvrWsi42S2S9xKhdqIDjn_KoxJG8VtnWSlV1APJCzlo8hK3FZYHuzVPGVlj4LZISYeiFTbAvYEgoCAQBJ7th19j8K0xKlhnGGHYorkUaXCBcBnC_2TRtdChFBykZ80bTIe6-YeWevPchPVFWg4zjrw1dQ230wAocIBEI9eMEg_4kC_ICh8VMwZKBnN5u0HVSBZFWwLfeav4xk8_vPM21B1x17E-_8VJs-"/>
+</div>
+<div class="flex justify-between items-start">
+<div>
+<h3 class="font-display-lg text-title-lg text-primary leading-tight">Fleur de Sel</h3>
+<p class="text-label-md text-on-surface-variant/70 uppercase tracking-widest mt-1">Salted Caramel</p>
+</div>
+<span class="text-secondary font-bold text-body-lg">€4.20</span>
+</div>
+</div>
+<!-- Product Card 5 -->
+<div class="bg-surface-container-lowest border border-outline-variant/10 rounded-xl p-4 cocoa-shadow hover:scale-[1.02] transition-transform cursor-pointer group animate-item" style="animation-delay: 0.3s;">
+<div class="aspect-square w-full rounded-lg overflow-hidden mb-4 relative">
+<div class="absolute inset-0 bg-primary/5 group-hover:bg-transparent transition-colors z-10"></div>
+<img class="w-full h-full object-cover" data-alt="A vibrant green pistachio-filled chocolate, decorated with crushed nuts on top. The chocolate shell is a medium-brown milk chocolate. The background is a clean, neutral taupe. Minimalist composition with a focus on the artisanal hand-crafted details of the confection." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCI79_oWzITNZGtSsKuDxnn4vUQAxkgkCUFlwhdXz0NHMW91hl-3-snzQHYdGuaii79QZIr86uJUub2MDOPnnl8BR1T1gFLAy4uWTeFgWz904uBCCcqdFUwIJbCF3OarOXuIJwdheRb8EvfjZQ_TUHQrhCrMhCrxaSOGYi-3-Ks4uXZFCprsFeFzjBMl258lgEHXU-nJHxs-rS6TgAExyg8s1qUUFG3TQfehRqCWbonyhEAY4lggCzF"/>
+</div>
+<div class="flex justify-between items-start">
+<div>
+<h3 class="font-display-lg text-title-lg text-primary leading-tight">Pistachio Royale</h3>
+<p class="text-label-md text-on-surface-variant/70 uppercase tracking-widest mt-1">Sicilian Nut</p>
+</div>
+<span class="text-secondary font-bold text-body-lg">€5.50</span>
+</div>
+</div>
+<!-- Product Card 6 -->
+<div class="bg-surface-container-lowest border border-outline-variant/10 rounded-xl p-4 cocoa-shadow hover:scale-[1.02] transition-transform cursor-pointer group animate-item" style="animation-delay: 0.35s;">
+<div class="aspect-square w-full rounded-lg overflow-hidden mb-4 relative">
+<div class="absolute inset-0 bg-primary/5 group-hover:bg-transparent transition-colors z-10"></div>
+<img class="w-full h-full object-cover" data-alt="Two dark chocolate discs filled with a bright raspberry reduction. A single fresh raspberry rests beside them. The setting is a dark, rustic wood table with soft, focused lighting. The deep reds of the fruit pop against the dark browns of the chocolate." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBSN4-z3usyFHVqME9PGRIx5Yd46x69zW84io4BivW569w_FqEYtquuhF1lxYSy0BwueUqZRFTrRkipgJ1H-kxxrVxdpGT8hzrPk33D-om0JymgrCTvB6fZB6CZiP9qcKmYPHdOZgbdiyWOuIB0Gb9z-JG89Obocg3BQc9ikdTpBx7MUOUp4d8eYTzEhYKPllPeQ-oYve6lMVZ3q9qvt-6qm86JAGHwz9fpQJQ4gSEtL8tRCf5SEcm1"/>
+</div>
+<div class="flex justify-between items-start">
+<div>
+<h3 class="font-display-lg text-title-lg text-primary leading-tight">Framboise Noir</h3>
+<p class="text-label-md text-on-surface-variant/70 uppercase tracking-widest mt-1">Wild Berry</p>
+</div>
+<span class="text-secondary font-bold text-body-lg">€4.80</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Current Order Sidebar -->
+<section class="w-96 bg-surface-container border-l border-outline-variant/20 flex flex-col p-6 cocoa-shadow z-30">
+<div class="flex items-center justify-between mb-8">
+<h2 class="font-display-lg text-title-lg text-primary">Current Order</h2>
+<span class="text-on-surface-variant/60 text-label-md bg-surface-container-high px-2 py-1 rounded">ID: #4092</span>
+</div>
+<div class="flex-1 overflow-y-auto custom-scrollbar space-y-4 pr-2">
+<!-- Order Item 1 -->
+<div class="flex gap-4 items-center animate-item" style="animation-delay: 0.4s;">
+<div class="w-16 h-16 rounded-lg overflow-hidden bg-white shrink-0 border border-outline-variant/10">
+<img class="w-full h-full object-cover" data-alt="Macro photo of a dark chocolate truffle." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBxh2dZAGNaRIyJRZw5pKVlai2Rg9H9i-tV2xyHVKafV89BJ2cuPjWGetaXmMPVQz0Ag1sVz39q8BKICa1OFj0ZZBR5gty0-61V9k5HWDlu0OuOBQgrJShGO5gHFHBczEtz0Ayc298wyLZeZIl6UwrfKa2TXX2zKQFeun1K8Hjpg8dk9JIw9acDakDqPMM46ZIsmgILC0d1tM7n3zNve2mBrhDwzbsZp4idYWhR4UfqXFSVzlLWPuIl"/>
+</div>
+<div class="flex-1">
+<h4 class="font-title-lg text-body-md text-primary leading-tight">Midnight Truffle</h4>
+<p class="text-on-surface-variant text-label-md">Qty: 3</p>
+</div>
+<div class="text-right">
+<p class="text-primary font-bold text-body-md">€13.50</p>
+<span class="material-symbols-outlined text-error/40 text-sm cursor-pointer hover:text-error transition-colors">delete</span>
+</div>
+</div>
+<!-- Order Item 2 -->
+<div class="flex gap-4 items-center animate-item" style="animation-delay: 0.45s;">
+<div class="w-16 h-16 rounded-lg overflow-hidden bg-white shrink-0 border border-outline-variant/10">
+<img class="w-full h-full object-cover" data-alt="Close up of a gold leaf chocolate praline." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBGkJ9AtEY55AF8tO4qp6CESbIpDqAkaUpHwOvzx2De8-iKATVN1hYR965AsZ8zvFFecYTBlHs2VhPL8C_-RFsF1MeI6Ey20fv4BYWQFuYphLSpIXACZ7Tehb7iwzadhy29JdzIJxki9dp6sqZQdrQDY94LwCWaZouspZf-MDXN-y9Bxyyo_-JIFCCDIg15xow-EqIj455kC_fj2mvyJnnH2C1HUEN_D_SZgCXiYS4BlTBkHn8ErtLU"/>
+</div>
+<div class="flex-1">
+<h4 class="font-title-lg text-body-md text-primary leading-tight">Gold Leaf Praline</h4>
+<p class="text-on-surface-variant text-label-md">Qty: 1</p>
+</div>
+<div class="text-right">
+<p class="text-primary font-bold text-body-md">€6.20</p>
+<span class="material-symbols-outlined text-error/40 text-sm cursor-pointer hover:text-error transition-colors">delete</span>
+</div>
+</div>
+<div class="h-px bg-outline-variant/30 my-4"></div>
+<!-- Recommendation Micro-Interaction -->
+
+<!-- Calculations & CTA -->
+<div class="mt-8 pt-6 border-t border-outline-variant/40 space-y-3">
+<div class="flex justify-between text-body-md">
+<span class="text-on-surface-variant">Subtotal</span>
+<span class="text-primary">€19.70</span>
+</div>
+<div class="flex justify-between text-body-md">
+<span class="text-on-surface-variant">Tax (12%)</span>
+<span class="text-primary">€2.36</span>
+</div>
+<div class="flex justify-between text-title-lg font-bold pt-2">
+<span class="text-primary">Total</span>
+<span class="text-secondary font-display-lg">€22.06</span>
+</div>
+<div class="grid grid-cols-2 gap-3 mt-6">
+<button class="py-4 rounded-xl border border-primary text-primary font-bold hover:bg-primary/5 transition-colors uppercase tracking-widest text-label-md">
+                            Void Order
+                        </button>
+<button class="py-4 rounded-xl bg-secondary-container text-on-secondary-container font-bold hover:brightness-95 active:scale-[0.98] transition-all flex items-center justify-center gap-2 uppercase tracking-widest text-label-md" style="background-color: #D4AF37; color: white;">
+                            Checkout
+                            <span class="material-symbols-outlined">payments</span>
+</button>
+</div>
+</div>
+</section>
+</main>
+</div>
+<!-- Footer Identity -->
+<footer class="fixed bottom-0 left-20 right-0 bg-surface-container-lowest dark:bg-surface-container-lowest border-t border-outline-variant/20 z-50">
+<div class="flex justify-between items-center px-gutter py-4 h-12">
+<p class="font-label-md text-label-md text-on-surface-variant/60">© 2024 KHAMALA AND KSHITIJA'S POS System — DEVELOPED BY CINIFIX TECHNOLOGY</p>
+<div class="flex gap-6">
+
+
+</div>
+</div>
+</footer>
+<script>
+        // Simple click interaction for product cards to simulate adding to order
+        document.querySelectorAll('.group.animate-item').forEach(card => {
+            card.addEventListener('click', () => {
+                card.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    card.style.transform = '';
+                }, 100);
+                
+                // Trigger a small visual feedback on the checkout sidebar
+                const orderTitle = document.querySelector('h2.font-display-lg');
+                orderTitle.classList.add('text-secondary');
+                setTimeout(() => {
+                    orderTitle.classList.remove('text-secondary');
+                }, 400);
+            });
+        });
+    </script>
+</body></html>

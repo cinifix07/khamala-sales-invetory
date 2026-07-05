@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Chocolate Luxe | Artisan Login</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&amp;family=Source+Sans+3:wght@400;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container-high": "#f3e5df",
+                        "on-surface-variant": "#4f4540",
+                        "on-background": "#211a16",
+                        "outline": "#81756f",
+                        "surface-variant": "#ede0d9",
+                        "tertiary": "#191a17",
+                        "tertiary-fixed": "#e4e2de",
+                        "inverse-on-surface": "#fceee7",
+                        "on-surface": "#211a16",
+                        "surface-container-low": "#fff1ea",
+                        "on-primary-fixed-variant": "#574238",
+                        "primary-fixed-dim": "#dec1b3",
+                        "surface": "#fff8f5",
+                        "secondary-fixed": "#ffe088",
+                        "on-tertiary-fixed-variant": "#474744",
+                        "surface-container-highest": "#ede0d9",
+                        "on-secondary-fixed": "#241a00",
+                        "surface-bright": "#fff8f5",
+                        "primary-fixed": "#fbdcce",
+                        "on-error": "#ffffff",
+                        "on-tertiary-fixed": "#1b1c1a",
+                        "error": "#ba1a1a",
+                        "inverse-primary": "#dec1b3",
+                        "on-secondary": "#ffffff",
+                        "tertiary-container": "#2e2e2c",
+                        "background": "#fff8f5",
+                        "inverse-surface": "#362f2b",
+                        "error-container": "#ffdad6",
+                        "tertiary-fixed-dim": "#c8c6c3",
+                        "secondary-container": "#fed65b",
+                        "surface-tint": "#705a4f",
+                        "on-error-container": "#93000a",
+                        "secondary": "#735c00",
+                        "on-primary-container": "#aa9084",
+                        "primary-container": "#3c2a21",
+                        "primary": "#25160e",
+                        "on-secondary-container": "#745c00",
+                        "on-tertiary": "#ffffff",
+                        "outline-variant": "#d3c3bd",
+                        "surface-dim": "#e5d7d1",
+                        "on-primary": "#ffffff",
+                        "on-primary-fixed": "#281810",
+                        "surface-container": "#f9ebe4",
+                        "on-tertiary-container": "#969592",
+                        "on-secondary-fixed-variant": "#574500",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary-fixed-dim": "#e9c349"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "margin-tablet": "32px",
+                        "unit": "8px",
+                        "gutter": "24px",
+                        "padding-card": "24px",
+                        "margin-desktop": "64px",
+                        "container-max": "1440px"
+                    },
+                    "fontFamily": {
+                        "label-md": ["\"Source Sans 3\""],
+                        "display-lg": ["Playfair Display"],
+                        "headline-md": ["Playfair Display"],
+                        "body-md": ["\"Source Sans 3\""],
+                        "body-lg": ["\"Source Sans 3\""],
+                        "title-lg": ["\"Source Sans 3\""],
+                        "headline-lg": ["Playfair Display"]
+                    },
+                    "fontSize": {
+                        "label-md": ["14px", {"lineHeight": "1.2", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                        "display-lg": ["56px", {"lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "headline-md": ["32px", {"lineHeight": "1.3", "fontWeight": "600"}],
+                        "body-md": ["16px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                        "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                        "title-lg": ["22px", {"lineHeight": "1.4", "letterSpacing": "0.01em", "fontWeight": "600"}],
+                        "headline-lg": ["40px", {"lineHeight": "1.2", "fontWeight": "700"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+        }
+        .luxury-shadow {
+            box-shadow: 0 20px 50px rgba(60, 42, 33, 0.12);
+        }
+        .cocoa-gradient {
+            background: linear-gradient(135deg, #25160e 0%, #3c2a21 100%);
+        }
+        input:focus + label, input:not(:placeholder-shown) + label {
+            transform: translateY(-24px) scale(0.85);
+            color: #735c00;
+        }
+        .input-underline {
+            transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        input:focus ~ .input-underline {
+            width: 100%;
+        }
+    </style>
+</head>
+<body class="bg-surface font-body-md text-on-surface antialiased overflow-hidden">
+<!-- Main Content Canvas -->
+<main class="flex h-screen w-full items-stretch overflow-hidden">
+<!-- Left Side: Visual Anchor (Split Layout) -->
+<div class="relative hidden lg:flex lg:w-7/12 xl:w-2/3 cocoa-gradient items-center justify-center overflow-hidden">
+<!-- Background Atmospheric Texture -->
+<div class="absolute inset-0 opacity-10 pointer-events-none" style="background-image: radial-gradient(#ffe088 0.5px, transparent 0.5px); background-size: 24px 24px;"></div>
+<!-- Hero Image Frame -->
+<div class="relative z-10 w-full h-full p-24 flex items-center justify-center">
+<div class="relative w-full max-w-2xl h-[80%] luxury-shadow rounded-lg overflow-hidden group">
+<img class="w-full h-full object-cover transition-transform duration-1000 group -hover:scale-105" data-alt="A macro cinematic photograph of a single artisanal chocolate truffle dusted with fine 24-karat gold leaf, resting on a dark, polished ebony wood surface. The background is a soft-focus laboratory of a master chocolatier with copper kettles and ivory-toned marble. Soft, warm side-lighting highlights the velvety texture of the cocoa shell. The overall aesthetic is rich, moody, and extremely high-end, using a palette of deep cocoa browns and shimmering champagne golds." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBEiaWG8KpwdoaPd-43BiiNPRVxrfdwqCKiRPUaB29_zq6cyUxQz-RdQKgqIL60E_3uhOXIxqpDeXnajG1SA43PDRgj651xqVxT_haie03t8Z3-jI067FKBtDrEBqj5cuzo-F5XXa3QhNO26YJnH0-4i4RERMozNIgT5zGMWvM4HXzfmUaOt6AwLm_nbAGFbCtRkYlvkjCXtp77y_5L3h4C6zYLriXy4Cj1_LbQKBQnhdiVdyesvUc3"/>
+<!-- Overlay Branding -->
+<div class="absolute inset-0 bg-gradient-to-t from-primary/80 to-transparent flex items-end p-12">
+<div class="max-w-md">
+<h2 class="font-headline-lg text-headline-lg text-secondary-fixed mb-4">Precision in Every Temper</h2>
+<p class="font-body-lg text-body-lg text-on-primary-fixed-variant/90 italic">
+                                "The art of chocolate is not in the making, but in the patience of the process."
+                            </p>
+</div>
+</div>
+</div>
+</div>
+<!-- Floating Decorative Element -->
+<div class="absolute top-12 left-12">
+<span class="material-symbols-outlined text-secondary-fixed text-6xl opacity-20" style="font-variation-settings: 'FILL' 1;">restaurant_menu</span>
+</div>
+</div>
+<!-- Right Side: Login Form Canvas -->
+<div class="w-full lg:w-5/12 xl:w-1/3 flex flex-col items-center justify-center bg-surface relative px-12 md:px-24">
+<!-- Brand Logo -->
+<div class="absolute top-12 flex flex-col items-center gap-2">
+<span class="font-display-lg text-title-lg tracking-[0.2em] text-primary uppercase">KHAMALA AND KSHITIJA'S SALES TRACKING AND STOCKS INVENTORY</span>
+</div>
+<!-- Login Form Container -->
+<div class="w-full max-w-sm">
+<header class="mb-12 text-center">
+<h1 class="font-headline-md text-headline-md text-primary mb-2">SIGN IN</h1>
+</header>
+<form class="space-y-8" onsubmit="event.preventDefault();">
+<!-- Email Input Group -->
+<div class="relative group">
+<input class="peer w-full bg-transparent border-0 border-b border-outline-variant/50 py-3 px-0 focus:ring-0 focus:border-transparent transition-all placeholder:text-transparent" id="email" name="email" placeholder=" " required="" type="email"/>
+<label class="absolute left-0 top-3 text-on-surface-variant transition-all duration-300 pointer-events-none origin-left font-label-md text-label-md" for="email">
+                            MASTER IDENTIFIER
+                        </label>
+<div class="input-underline absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-0.5 bg-secondary"></div>
+</div>
+<!-- Password Input Group -->
+<div class="relative group">
+<input class="peer w-full bg-transparent border-0 border-b border-outline-variant/50 py-3 px-0 focus:ring-0 focus:border-transparent transition-all placeholder:text-transparent" id="password" name="password" placeholder=" " required="" type="password"/>
+<label class="absolute left-0 top-3 text-on-surface-variant transition-all duration-300 pointer-events-none origin-left font-label-md text-label-md" for="password">
+                            SECRET KEY
+                        </label>
+<div class="input-underline absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-0.5 bg-secondary"></div>
+<button class="absolute right-0 top-3 text-on-surface-variant/50 hover:text-secondary transition-colors" type="button">
+<span class="material-symbols-outlined text-xl">visibility</span>
+</button>
+</div>
+<!-- Form Extras -->
+<div class="flex items-center justify-between py-2">
+<label class="flex items-center gap-3 cursor-pointer group">
+<div class="relative">
+<input class="sr-only peer" type="checkbox"/>
+<div class="w-5 h-5 border border-outline rounded-sm peer-checked:bg-primary peer-checked:border-primary transition-all"></div>
+<span class="material-symbols-outlined absolute inset-0 text-secondary-fixed text-xs flex items-center justify-center scale-0 peer-checked:scale-100 transition-transform" style="font-variation-settings: 'wght' 700;">check</span>
+</div>
+<span class="font-label-md text-label-md text-on-surface-variant group-hover:text-primary transition-colors">Remember device</span>
+</label>
+
+</div>
+<!-- Action Button -->
+<button class="w-full h-14 bg-primary text-secondary-fixed font-label-md text-label-md tracking-widest flex items-center justify-center gap-3 group transition-all hover:bg-primary-container relative overflow-hidden luxury-shadow" type="submit">
+<span class="relative z-10">AUTHENTICATE ACCESS</span>
+<span class="material-symbols-outlined relative z-10 transition-transform group-hover:translate-x-2">arrow_forward</span>
+<!-- Subtle hover shimmer -->
+<div class="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 bg-gradient-to-r from-transparent via-white/5 to-transparent"></div>
+</button>
+</form>
+<!-- Footer Links -->
+<footer class="mt-16 text-center space-y-6">
+<div class="flex items-center justify-center gap-4">
+<div class="h-px bg-outline-variant/30 flex-grow"></div>
+<div class="h-px bg-outline-variant/30 flex-grow"></div>
+</div>
+<div class="flex justify-center gap-6">
+</div>
+</footer>
+</div>
+<!-- Global Footer Text (Absolute) -->
+<div class="absolute bottom-8 text-center w-full">
+<p class="font-label-md text-label-md text-on-surface-variant/60 tracking-wider">
+                    © 2026 KHAMALA AND KSHITIJA'S | PURVEYORS OF EXCELLENCE
+                </p>
+                <p class="font-label-md text-label-md text-on-surface-variant/60 tracking-wider">
+                    DEVELOPED BY <a class="text-secondary hover:text-secondary-container transition-colors" href="https://www.facebook.com/share/18wETPHwrE/" target="_blank">CINIFX Company</a>
+                </p>
+</div>
+</div>
+</main>
+<!-- Micro-interaction Scripts -->
+<script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const inputs = document.querySelectorAll('input');
+            
+            inputs.forEach(input => {
+                // Focus effect already handled by CSS peer classes
+                // Adding a subtle click sound or ripple could go here
+                input.addEventListener('focus', () => {
+                    const parent = input.parentElement;
+                    const label = parent.querySelector('label');
+                    label.classList.add('text-secondary');
+                });
+
+                input.addEventListener('blur', () => {
+                    const parent = input.parentElement;
+                    const label = parent.querySelector('label');
+                    if (!input.value) {
+                        label.classList.remove('text-secondary');
+                    }
+                });
+            });
+        });
+    </script>
+</body></html>
