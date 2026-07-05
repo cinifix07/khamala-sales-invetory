@@ -298,12 +298,22 @@
 .login-footer a { color: var(--gold); text-decoration: none; }
 .login-footer a:hover { text-decoration: underline; }
 
+.footer-primary { display: flex; align-items: center; justify-content: center; gap: 0.65rem; flex-wrap: wrap; }
+.footer-divider { color: rgba(79, 69, 64, 0.28); }
+.install-app-button { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0; border: 0; background: transparent; color: var(--gold); font: inherit; letter-spacing: inherit; cursor: pointer; transition: color 0.2s ease, transform 0.2s ease; }
+.install-app-button .material-symbols-outlined { font-size: 15px; }
+.install-app-button:hover:not(:disabled) { color: #8a5d28; transform: translateY(-1px); }
+.install-app-button:focus-visible { outline: 2px solid var(--gold); outline-offset: 4px; border-radius: 2px; }
+.install-app-button:disabled { color: rgba(79, 69, 64, 0.48); cursor: default; }
+
 @media (max-width: 540px) {
   .login-panel { padding: 1.25rem 1rem 6rem; }
   .login-form-wrap { padding: 2rem 1.5rem 2.25rem; border-radius: 14px; }
   .login-logo { width: 110px; height: 110px; }
   .login-form-wrap h1 { font-size: 29px; }
   .login-footer { bottom: 1rem; font-size: 9px; }
+  .footer-primary { gap: 0.4rem; }
+  .install-app-button .material-symbols-outlined { font-size: 13px; }
 }
 
 @media (max-height: 720px) and (min-width: 541px) {

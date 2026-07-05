@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useAuthActions } from '@convex-dev/auth/react'
 import { Authenticated, Unauthenticated, useQuery } from 'convex/react'
 import { api } from '../../convex/_generated/api'
@@ -12,7 +12,46 @@ export default function Login() {
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [activeView, setActiveView] = useState(null)
+  const [installPrompt, setInstallPrompt] = useState(null)
+  const [isInstalled, setIsInstalled] = useState(
+    () => window.matchMedia('(display-mode: standalone)').matches,
+  )
   const { signIn, signOut } = useAuthActions()
+
+  useEffect(() => {
+    const handleInstallPrompt = (event) => {
+      event.preventDefault()
+      setInstallPrompt(event)
+    }
+    const handleInstalled = () => {
+      setInstallPrompt(null)
+      setIsInstalled(true)
+    }
+
+    window.addEventListener('beforeinstallprompt', handleInstallPrompt)
+    window.addEventListener('appinstalled', handleInstalled)
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleInstallPrompt)
+      window.removeEventListener('appinstalled', handleInstalled)
+    }
+  }, [])
+
+  const handleInstall = async () => {
+    if (installPrompt) {
+      await installPrompt.prompt()
+      const { outcome } = await installPrompt.userChoice
+      if (outcome === 'accepted') setInstallPrompt(null)
+      return
+    }
+
+    const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent)
+    window.alert(
+      isIos
+        ? 'To install: tap Share, then choose “Add to Home Screen”.'
+        : 'To install: open your browser menu and choose “Install app” or “Add to Home screen”.',
+    )
+  }
 
   const handleSignOut = async () => {
     setActiveView(null)
@@ -119,7 +158,21 @@ export default function Login() {
         </div>
 
         <footer className="login-footer">
-          <p>© 2026 KHAMALA AND KSHITIJA&apos;S | PURVEYORS OF EXCELLENCE</p>
+          <p className="footer-primary">
+            <span>© 2026 KHAMALA AND KSHITIJA&apos;S</span>
+            <span className="footer-divider" aria-hidden="true">|</span>
+            <button
+              className="install-app-button"
+              type="button"
+              onClick={handleInstall}
+              disabled={isInstalled}
+            >
+              <span className="material-symbols-outlined" aria-hidden="true">
+                {isInstalled ? 'check_circle' : 'download'}
+              </span>
+              {isInstalled ? 'APP INSTALLED' : 'DOWNLOAD APP'}
+            </button>
+          </p>
           <p>
             DEVELOPED BY{' '}
             <a

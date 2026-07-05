@@ -5,6 +5,12 @@ import { ConvexReactClient } from 'convex/react'
 import './index.css'
 import Login from './LOGIN/LOGIN.jsx'
 
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`)
+  })
+}
+
 const convexUrl =
   import.meta.env.VITE_CONVEX_URL ||
   import.meta.env.VITE_BASE_POINT ||
