@@ -1,5 +1,6 @@
 import { getAuthUserId } from '@convex-dev/auth/server'
-import { query } from './_generated/server'
+import { v } from 'convex/values'
+import { mutation, query } from './_generated/server'
 
 export const list = query({
   args: {},
@@ -105,5 +106,45 @@ export const dashboardStats = query({
       yearlyRevenue,
       yearlyLabels,
     }
+  },
+})
+
+export const update = mutation({
+  args: {
+    id: v.id('historysale'),
+    date: v.number(),
+    productName: v.string(),
+    eachPrice: v.number(),
+    totalQty: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx)
+    if (!userId) throw new Error('You must be signed in to update a sale.')
+
+    const sale = await ctx.db.get(args.id)
+    if (!sale) throw new Error('Sale record not found.')
+    const productName = args.productName.trim()
+    if (!productName) throw new Error('Product name is required.')
+    if (!Number.isFinite(args.date)) throw new Error('A valid sale date is required.')
+    if (!Number.isFinite(args.eachPrice) || args.eachPrice < 0) throw new Error('Each price must be zero or greater.')
+    if (!Number.isInteger(args.totalQty) || args.totalQty < 1) throw new Error('Total quantity must be at least one.')
+
+    await ctx.db.patch(args.id, {
+      date: args.date,
+      productName,
+      eachPrice: args.eachPrice,
+      totalQty: args.totalQty,
+      totalPrice: args.eachPrice * args.totalQty,
+    })
+  },
+})
+
+export const remove = mutation({
+  args: { id: v.id('historysale') },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx)
+    if (!userId) throw new Error('You must be signed in to delete a sale.')
+    if (!(await ctx.db.get(args.id))) throw new Error('Sale record not found.')
+    await ctx.db.delete(args.id)
   },
 })

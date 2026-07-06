@@ -87,6 +87,17 @@
 .staff-footer { position: fixed; right: 0; bottom: 0; left: 210px; z-index: 50; height: 48px; border-top: 1px solid rgba(211,195,189,.45); background: white; }
 .staff-footer > div { display: flex; height: 100%; align-items: center; padding: 0 24px; }
 .staff-footer p { margin: 0; color: #81756f; font-size: 11px; }
+.checkout-success-backdrop { position: fixed; inset: 0; z-index: 100; display: grid; padding: 20px; background: rgba(25,14,9,.62); backdrop-filter: blur(5px); place-items: center; }
+.checkout-success-modal { width: min(100%, 430px); padding: 34px 32px 30px; border: 1px solid rgba(255,255,255,.45); border-radius: 18px; background: white; box-shadow: 0 28px 80px rgba(25,14,9,.35); text-align: center; animation: staff-fade .25s ease both; }
+.checkout-success-icon { display: grid; width: 68px; height: 68px; margin: 0 auto 18px; border: 1px solid #cce1d2; border-radius: 50%; color: #18753c; background: #edf8f0; place-items: center; }
+.checkout-success-icon .material-symbols-outlined { font-size: 36px; font-weight: 600; }
+.checkout-success-eyebrow { margin: 0 0 7px; color: var(--gold); font-size: 10px; font-weight: 700; letter-spacing: .15em; }
+.checkout-success-modal h2 { margin: 0; color: var(--cocoa); font: 700 29px 'Playfair Display', serif; }
+.checkout-success-modal > p:not(.checkout-success-eyebrow) { margin: 12px 0 24px; color: #675b55; font-size: 14px; line-height: 1.6; }
+.checkout-success-modal strong { color: var(--cocoa); }
+.checkout-success-modal button { min-width: 120px; padding: 12px 24px; border: 1px solid var(--cocoa); border-radius: 8px; color: white; background: var(--cocoa); font-weight: 700; cursor: pointer; }
+.checkout-success-modal button:hover { border-color: var(--gold); background: var(--gold); }
+.checkout-success-modal button:focus-visible { outline: 3px solid #ffe088; outline-offset: 2px; }
 .custom-scrollbar { scrollbar-color: #d3c3bd transparent; scrollbar-width: thin; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
 @keyframes staff-fade { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }

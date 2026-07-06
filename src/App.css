@@ -305,6 +305,20 @@
 .install-app-button:hover:not(:disabled) { color: #8a5d28; transform: translateY(-1px); }
 .install-app-button:focus-visible { outline: 2px solid var(--gold); outline-offset: 4px; border-radius: 2px; }
 .install-app-button:disabled { color: rgba(79, 69, 64, 0.48); cursor: default; }
+.ios-install-backdrop { position: fixed; inset: 0; z-index: 100; display: grid; padding: 20px; overflow-y: auto; background: rgba(31,20,14,.68); backdrop-filter: blur(6px); place-items: center; }
+.ios-install-modal { position: relative; width: min(100%, 450px); padding: 34px 32px 30px; border: 1px solid rgba(255,255,255,.5); border-radius: 20px; background: #fffdfb; box-shadow: 0 28px 80px rgba(31,20,14,.38); text-align: center; }
+.ios-install-close { position: absolute; top: 18px; right: 18px; display: grid; width: 38px; height: 38px; padding: 0; border: 1px solid #e4d5ce; border-radius: 9px; color: var(--cocoa); background: white; cursor: pointer; place-items: center; }
+.ios-install-icon { display: grid; width: 66px; height: 66px; margin: 0 auto 17px; border: 1px solid #ead9a5; border-radius: 50%; color: var(--gold); background: #fff8df; place-items: center; }
+.ios-install-icon .material-symbols-outlined { font-size: 34px; }
+.ios-install-eyebrow { margin: 0 0 7px; color: var(--gold); font-size: 10px; font-weight: 700; letter-spacing: .15em; }
+.ios-install-modal h2 { max-width: 350px; margin: 0 auto; color: var(--cocoa); font: 700 28px/1.2 'Playfair Display', serif; }
+.ios-install-modal ol { display: grid; gap: 10px; padding: 0; margin: 24px 0; list-style: none; text-align: left; }
+.ios-install-modal li { display: flex; align-items: center; gap: 12px; padding: 11px 13px; border: 1px solid #eee1da; border-radius: 10px; background: #fff9f6; }
+.ios-install-modal li > span:first-child { display: grid; flex: 0 0 27px; width: 27px; height: 27px; border-radius: 50%; color: white; background: var(--cocoa); font-size: 12px; font-weight: 700; place-items: center; }
+.ios-install-modal li p { margin: 0; color: #625650; font-size: 14px; line-height: 1.45; }
+.ios-share-icon { color: var(--gold); font-size: 19px; vertical-align: -4px; }
+.ios-install-done { min-width: 130px; padding: 12px 24px; border: 1px solid var(--cocoa); border-radius: 9px; color: white; background: var(--cocoa); font-weight: 700; cursor: pointer; }
+.ios-install-close:focus-visible, .ios-install-done:focus-visible { outline: 3px solid #e8cd71; outline-offset: 2px; }
 
 @media (max-width: 540px) {
   .login-panel { padding: 1.25rem 1rem 6rem; }
@@ -314,6 +328,8 @@
   .login-footer { bottom: 1rem; font-size: 9px; }
   .footer-primary { gap: 0.4rem; }
   .install-app-button .material-symbols-outlined { font-size: 13px; }
+  .ios-install-modal { padding: 30px 18px 24px; }
+  .ios-install-modal h2 { padding-inline: 24px; font-size: 25px; }
 }
 
 @media (max-height: 720px) and (min-width: 541px) {

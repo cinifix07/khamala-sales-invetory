@@ -70,6 +70,7 @@ export default function Staff({ onSignOut }) {
   const [order, setOrder] = useState([])
   const [search, setSearch] = useState('')
   const [checkoutMessage, setCheckoutMessage] = useState('')
+  const [completedSale, setCompletedSale] = useState(null)
   const [isCheckingOut, setIsCheckingOut] = useState(false)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isReceiptsOpen, setIsReceiptsOpen] = useState(false)
@@ -121,12 +122,15 @@ export default function Staff({ onSignOut }) {
 
   const checkout = async () => {
     if (order.length === 0) return
+    const completedTotal = total
+    const completedQuantity = order.reduce((sum, item) => sum + item.quantity, 0)
     setIsCheckingOut(true)
     setCheckoutMessage('Processing checkout…')
     try {
       await checkoutProducts({ items: order.map((item) => ({ productId: item.id, quantity: item.quantity })) })
       setOrder([])
-      setCheckoutMessage(`Checkout successful. ${peso.format(total)} sale recorded.`)
+      setCheckoutMessage('')
+      setCompletedSale({ total: completedTotal, quantity: completedQuantity })
     } catch (error) {
       setCheckoutMessage(error instanceof Error ? error.message : 'Checkout failed. Please try again.')
     } finally {
@@ -257,6 +261,18 @@ export default function Staff({ onSignOut }) {
           </section>
         </main>
       </div>
+
+      {completedSale ? (
+        <div className="checkout-success-backdrop" role="presentation" onMouseDown={() => setCompletedSale(null)}>
+          <section className="checkout-success-modal" role="dialog" aria-modal="true" aria-labelledby="checkout-success-title" onMouseDown={(event) => event.stopPropagation()}>
+            <div className="checkout-success-icon" aria-hidden="true"><span className="material-symbols-outlined">check</span></div>
+            <p className="checkout-success-eyebrow">CHECKOUT COMPLETE</p>
+            <h2 id="checkout-success-title">Sale successfully added</h2>
+            <p><strong>{peso.format(completedSale.total)}</strong> for {completedSale.quantity} {completedSale.quantity === 1 ? 'item has' : 'items have'} been recorded in Sales History.</p>
+            <button type="button" onClick={() => setCompletedSale(null)}>Done</button>
+          </section>
+        </div>
+      ) : null}
 
     
     </div>

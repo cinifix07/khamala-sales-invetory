@@ -243,6 +243,29 @@
 .product-modal-actions .save:hover { background: var(--admin-gold); border-color: var(--admin-gold); }
 .product-modal-actions button:disabled { cursor: wait; opacity: .65; transform: none; }
 .product-form-error { padding: 10px 12px; margin: 0; border: 1px solid #efc0bb; border-radius: 8px; color: #a43128; background: #fff2f0; font-size: 13px; }
+.product-success-modal { width: min(100%, 430px); padding: 34px 32px 30px; text-align: center; }
+.product-success-icon { display: grid; width: 68px; height: 68px; margin: 0 auto 18px; border: 1px solid #cce1d2; border-radius: 50%; color: #18753c; background: #edf8f0; place-items: center; }
+.product-success-icon .material-symbols-outlined { font-size: 36px; font-weight: 600; }
+.product-success-eyebrow { margin: 0 0 7px; color: var(--admin-gold) !important; font-size: 10px !important; font-weight: 700; letter-spacing: .15em; }
+.product-success-modal h3 { margin: 0; color: var(--admin-cocoa); font: 700 28px 'Playfair Display', serif; }
+.product-success-modal > p:not(.product-success-eyebrow) { margin: 12px 0 24px; color: var(--admin-muted); font-size: 14px; line-height: 1.6; }
+.product-success-modal > p strong { color: var(--admin-cocoa); }
+.product-success-modal > button { min-width: 120px; padding: 12px 24px; border: 1px solid var(--admin-cocoa); border-radius: 8px; color: white; background: var(--admin-cocoa); font-weight: 700; cursor: pointer; transition: background .2s, border-color .2s; }
+.product-success-modal > button:hover { border-color: var(--admin-gold); background: var(--admin-gold); }
+.product-confirm-modal { width: min(100%, 460px); padding: 32px; text-align: center; }
+.product-confirm-icon { display: grid; width: 64px; height: 64px; margin: 0 auto 18px; border: 1px solid #e8d9a8; border-radius: 50%; color: var(--admin-gold); background: #fff9e8; place-items: center; }
+.product-confirm-icon .material-symbols-outlined { font-size: 31px; }
+.product-confirm-modal h3 { max-width: 370px; margin: 0 auto; color: var(--admin-cocoa); font: 700 26px/1.25 'Playfair Display', serif; }
+.product-confirm-modal > p:not(.product-success-eyebrow) { margin: 12px 0 24px; color: var(--admin-muted); font-size: 14px; line-height: 1.6; }
+.product-confirm-modal > p strong { color: var(--admin-cocoa); }
+.product-confirm-modal .product-modal-actions { justify-content: center; }
+.product-delete-icon { display: grid; width: 64px; height: 64px; margin: 0 auto 18px; border: 1px solid #f1c5c0; border-radius: 50%; color: #b52c23; background: #fff1ef; place-items: center; }
+.product-delete-icon .material-symbols-outlined { font-size: 31px; }
+.product-delete-eyebrow { margin: 0 0 7px; color: #b52c23 !important; font-size: 10px !important; font-weight: 700; letter-spacing: .15em; }
+.product-delete-modal .product-form-error { margin: -10px 0 20px; text-align: left; }
+.product-modal-actions .delete-confirm { padding: 12px 18px; border: 1px solid #b52c23; border-radius: 8px; color: white; background: #b52c23; font-weight: 700; cursor: pointer; }
+.product-modal-actions .delete-confirm:hover { border-color: #922119; background: #922119; }
+.product-modal-actions .delete-confirm:disabled { cursor: wait; opacity: .65; }
 .add-product-button:focus-visible, .inventory-actions button:focus-visible, .product-modal button:focus-visible, .product-modal input:focus-visible { outline: 3px solid var(--admin-champagne); outline-offset: 2px; }
 
 @keyframes product-modal-in { from { opacity: 0; transform: translateY(16px) scale(.98); } to { opacity: 1; transform: none; } }

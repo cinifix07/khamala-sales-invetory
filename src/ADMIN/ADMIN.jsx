@@ -203,8 +203,14 @@ function InventoryView() {
   const updateProduct = useMutation(api.addproduct.update)
   const removeProduct = useMutation(api.addproduct.remove)
   const [editingProduct, setEditingProduct] = useState(null)
+  const [pendingEditProduct, setPendingEditProduct] = useState(null)
+  const [pendingDeleteProduct, setPendingDeleteProduct] = useState(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [addedProductName, setAddedProductName] = useState('')
+  const [updatedProductName, setUpdatedProductName] = useState('')
   const [isSaving, setIsSaving] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
   const [formError, setFormError] = useState('')
   const [selectedPage, setSelectedPage] = useState(1)
   const totalPages = Math.max(1, Math.ceil(products.length / pageSize))
@@ -223,6 +229,13 @@ function InventoryView() {
     setIsModalOpen(false)
   }
 
+  const confirmProductEdit = () => {
+    if (!pendingEditProduct) return
+    const product = pendingEditProduct
+    setPendingEditProduct(null)
+    openProductModal(product)
+  }
+
   const saveProduct = async (event) => {
     event.preventDefault()
     setIsSaving(true)
@@ -237,9 +250,11 @@ function InventoryView() {
     try {
       if (editingProduct) {
         await updateProduct({ id: editingProduct._id, ...product })
+        setUpdatedProductName(product.name)
       } else {
         await addProduct(product)
         setSelectedPage(1)
+        setAddedProductName(product.name)
       }
       closeProductModal()
     } catch (error) {
@@ -249,11 +264,17 @@ function InventoryView() {
     }
   }
 
-  const deleteProduct = async (id) => {
+  const deleteProduct = async () => {
+    if (!pendingDeleteProduct) return
+    setIsDeleting(true)
+    setDeleteError('')
     try {
-      await removeProduct({ id })
+      await removeProduct({ id: pendingDeleteProduct._id })
+      setPendingDeleteProduct(null)
     } catch (error) {
-      setFormError(error instanceof Error ? error.message : 'Unable to delete product.')
+      setDeleteError(error instanceof Error ? error.message : 'Unable to delete product.')
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -308,10 +329,13 @@ function InventoryView() {
                 </td>
                 <td data-label="Actions">
                   <div className="inventory-actions">
-                    <button type="button" aria-label={`Edit ${product.name}`} onClick={() => openProductModal(product)}>
+                    <button type="button" aria-label={`Edit ${product.name}`} onClick={() => setPendingEditProduct(product)}>
                       <span className="material-symbols-outlined" aria-hidden="true">edit</span>
                     </button>
-                    <button className="delete" type="button" aria-label={`Delete ${product.name}`} onClick={() => deleteProduct(product._id)}>
+                    <button className="delete" type="button" aria-label={`Delete ${product.name}`} onClick={() => {
+                      setDeleteError('')
+                      setPendingDeleteProduct(product)
+                    }}>
                       <span className="material-symbols-outlined" aria-hidden="true">delete</span>
                     </button>
                   </div>
@@ -338,6 +362,41 @@ function InventoryView() {
             </button>
           </div>
         </nav>
+      ) : null}
+
+      {pendingEditProduct ? (
+        <div className="product-modal-backdrop" role="presentation" onMouseDown={() => setPendingEditProduct(null)}>
+          <section className="product-modal product-confirm-modal" role="alertdialog" aria-modal="true" aria-labelledby="product-edit-confirm-title" aria-describedby="product-edit-confirm-description" onMouseDown={(event) => event.stopPropagation()}>
+            <div className="product-confirm-icon" aria-hidden="true">
+              <span className="material-symbols-outlined">edit</span>
+            </div>
+            <p className="product-success-eyebrow">CONFIRM EDIT</p>
+            <h3 id="product-edit-confirm-title">Are you sure you want to edit this product?</h3>
+            <p id="product-edit-confirm-description">You are about to make changes to <strong>{pendingEditProduct.name}</strong>.</p>
+            <div className="product-modal-actions">
+              <button className="cancel" type="button" onClick={() => setPendingEditProduct(null)}>Cancel</button>
+              <button className="save" type="button" onClick={confirmProductEdit}>Yes, Edit Product</button>
+            </div>
+          </section>
+        </div>
+      ) : null}
+
+      {pendingDeleteProduct ? (
+        <div className="product-modal-backdrop" role="presentation" onMouseDown={() => !isDeleting && setPendingDeleteProduct(null)}>
+          <section className="product-modal product-confirm-modal product-delete-modal" role="alertdialog" aria-modal="true" aria-labelledby="product-delete-confirm-title" aria-describedby="product-delete-confirm-description" onMouseDown={(event) => event.stopPropagation()}>
+            <div className="product-delete-icon" aria-hidden="true">
+              <span className="material-symbols-outlined">delete</span>
+            </div>
+            <p className="product-delete-eyebrow">DELETE PRODUCT</p>
+            <h3 id="product-delete-confirm-title">Are you sure you want to delete this product?</h3>
+            <p id="product-delete-confirm-description"><strong>{pendingDeleteProduct.name}</strong> will be permanently removed from your inventory.</p>
+            {deleteError ? <p className="product-form-error" role="alert">{deleteError}</p> : null}
+            <div className="product-modal-actions">
+              <button className="cancel" type="button" disabled={isDeleting} onClick={() => setPendingDeleteProduct(null)}>Cancel</button>
+              <button className="delete-confirm" type="button" disabled={isDeleting} onClick={deleteProduct}>{isDeleting ? 'Deleting…' : 'Yes, Delete Product'}</button>
+            </div>
+          </section>
+        </div>
       ) : null}
 
       {isModalOpen ? (
@@ -367,6 +426,34 @@ function InventoryView() {
           </section>
         </div>
       ) : null}
+
+      {addedProductName ? (
+        <div className="product-modal-backdrop" role="presentation" onMouseDown={() => setAddedProductName('')}>
+          <section className="product-modal product-success-modal" role="dialog" aria-modal="true" aria-labelledby="product-success-title" onMouseDown={(event) => event.stopPropagation()}>
+            <div className="product-success-icon" aria-hidden="true">
+              <span className="material-symbols-outlined">check</span>
+            </div>
+            <p className="product-success-eyebrow">INVENTORY UPDATED</p>
+            <h3 id="product-success-title">Product successfully added</h3>
+            <p><strong>{addedProductName}</strong> is now available in your inventory.</p>
+            <button type="button" onClick={() => setAddedProductName('')}>Done</button>
+          </section>
+        </div>
+      ) : null}
+
+      {updatedProductName ? (
+        <div className="product-modal-backdrop" role="presentation" onMouseDown={() => setUpdatedProductName('')}>
+          <section className="product-modal product-success-modal" role="dialog" aria-modal="true" aria-labelledby="product-update-success-title" onMouseDown={(event) => event.stopPropagation()}>
+            <div className="product-success-icon" aria-hidden="true">
+              <span className="material-symbols-outlined">check</span>
+            </div>
+            <p className="product-success-eyebrow">CHANGES SAVED</p>
+            <h3 id="product-update-success-title">Product successfully updated</h3>
+            <p>Your changes to <strong>{updatedProductName}</strong> have been saved.</p>
+            <button type="button" onClick={() => setUpdatedProductName('')}>Done</button>
+          </section>
+        </div>
+      ) : null}
     </section>
   )
 }
@@ -377,8 +464,13 @@ function ProfitView() {
   const updateProfit = useMutation(api.profit.update)
   const removeProfit = useMutation(api.profit.remove)
   const [editingRecord, setEditingRecord] = useState(null)
+  const [pendingEditRecord, setPendingEditRecord] = useState(null)
+  const [pendingDeleteRecord, setPendingDeleteRecord] = useState(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [savedProfitAmount, setSavedProfitAmount] = useState(null)
   const [isSaving, setIsSaving] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
   const [formError, setFormError] = useState('')
   const totalInvestment = records.reduce((sum, record) => sum + record.totalProfit, 0)
 
@@ -394,6 +486,13 @@ function ProfitView() {
     setFormError('')
   }
 
+  const confirmProfitEdit = () => {
+    if (!pendingEditRecord) return
+    const record = pendingEditRecord
+    setPendingEditRecord(null)
+    openModal(record)
+  }
+
   const saveProfit = async (event) => {
     event.preventDefault()
     setIsSaving(true)
@@ -405,6 +504,7 @@ function ProfitView() {
         await updateProfit({ id: editingRecord._id, totalProfit })
       } else {
         await addProfit({ totalProfit })
+        setSavedProfitAmount(totalProfit)
       }
       closeModal()
     } catch (error) {
@@ -414,11 +514,17 @@ function ProfitView() {
     }
   }
 
-  const deleteProfit = async (id) => {
+  const deleteProfit = async () => {
+    if (!pendingDeleteRecord) return
+    setIsDeleting(true)
+    setDeleteError('')
     try {
-      await removeProfit({ id })
+      await removeProfit({ id: pendingDeleteRecord._id })
+      setPendingDeleteRecord(null)
     } catch (error) {
-      setFormError(error instanceof Error ? error.message : 'Unable to delete profit record.')
+      setDeleteError(error instanceof Error ? error.message : 'Unable to delete profit record.')
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -453,8 +559,11 @@ function ProfitView() {
                 <td className="product-created" data-label="Date & Time Added"><time dateTime={new Date(record._creationTime).toISOString()}>{productDateFormatter.format(record._creationTime)}</time></td>
                 <td data-label="Actions">
                   <div className="inventory-actions">
-                    <button type="button" aria-label="Edit profit record" onClick={() => openModal(record)}><span className="material-symbols-outlined" aria-hidden="true">edit</span></button>
-                    <button className="delete" type="button" aria-label="Delete profit record" onClick={() => deleteProfit(record._id)}><span className="material-symbols-outlined" aria-hidden="true">delete</span></button>
+                    <button type="button" aria-label="Edit profit record" onClick={() => setPendingEditRecord(record)}><span className="material-symbols-outlined" aria-hidden="true">edit</span></button>
+                    <button className="delete" type="button" aria-label="Delete profit record" onClick={() => {
+                      setDeleteError('')
+                      setPendingDeleteRecord(record)
+                    }}><span className="material-symbols-outlined" aria-hidden="true">delete</span></button>
                   </div>
                 </td>
               </tr>
@@ -463,6 +572,41 @@ function ProfitView() {
         </table>
         {records.length === 0 ? <p className="inventory-empty">No profit investments recorded yet.</p> : null}
       </div>
+
+      {pendingEditRecord ? (
+        <div className="product-modal-backdrop" role="presentation" onMouseDown={() => setPendingEditRecord(null)}>
+          <section className="product-modal product-confirm-modal" role="alertdialog" aria-modal="true" aria-labelledby="profit-edit-confirm-title" aria-describedby="profit-edit-confirm-description" onMouseDown={(event) => event.stopPropagation()}>
+            <div className="product-confirm-icon" aria-hidden="true">
+              <span className="material-symbols-outlined">edit</span>
+            </div>
+            <p className="product-success-eyebrow">CONFIRM EDIT</p>
+            <h3 id="profit-edit-confirm-title">Are you sure you want to edit this profit?</h3>
+            <p id="profit-edit-confirm-description">You are about to change the <strong>{pesoFormatter.format(pendingEditRecord.totalProfit)}</strong> profit record.</p>
+            <div className="product-modal-actions">
+              <button className="cancel" type="button" onClick={() => setPendingEditRecord(null)}>Cancel</button>
+              <button className="save" type="button" onClick={confirmProfitEdit}>Yes, Edit Profit</button>
+            </div>
+          </section>
+        </div>
+      ) : null}
+
+      {pendingDeleteRecord ? (
+        <div className="product-modal-backdrop" role="presentation" onMouseDown={() => !isDeleting && setPendingDeleteRecord(null)}>
+          <section className="product-modal product-confirm-modal product-delete-modal" role="alertdialog" aria-modal="true" aria-labelledby="profit-delete-confirm-title" aria-describedby="profit-delete-confirm-description" onMouseDown={(event) => event.stopPropagation()}>
+            <div className="product-delete-icon" aria-hidden="true">
+              <span className="material-symbols-outlined">delete</span>
+            </div>
+            <p className="product-delete-eyebrow">DELETE PROFIT</p>
+            <h3 id="profit-delete-confirm-title">Are you sure you want to delete this profit?</h3>
+            <p id="profit-delete-confirm-description"><strong>{pesoFormatter.format(pendingDeleteRecord.totalProfit)}</strong> will be permanently removed from your profit records.</p>
+            {deleteError ? <p className="product-form-error" role="alert">{deleteError}</p> : null}
+            <div className="product-modal-actions">
+              <button className="cancel" type="button" disabled={isDeleting} onClick={() => setPendingDeleteRecord(null)}>Cancel</button>
+              <button className="delete-confirm" type="button" disabled={isDeleting} onClick={deleteProfit}>{isDeleting ? 'Deleting…' : 'Yes, Delete Profit'}</button>
+            </div>
+          </section>
+        </div>
+      ) : null}
 
       {isModalOpen ? (
         <div className="product-modal-backdrop" role="presentation" onMouseDown={closeModal}>
@@ -483,6 +627,20 @@ function ProfitView() {
           </section>
         </div>
       ) : null}
+
+      {savedProfitAmount !== null ? (
+        <div className="product-modal-backdrop" role="presentation" onMouseDown={() => setSavedProfitAmount(null)}>
+          <section className="product-modal product-success-modal" role="dialog" aria-modal="true" aria-labelledby="profit-save-success-title" onMouseDown={(event) => event.stopPropagation()}>
+            <div className="product-success-icon" aria-hidden="true">
+              <span className="material-symbols-outlined">check</span>
+            </div>
+            <p className="product-success-eyebrow">PROFIT RECORDED</p>
+            <h3 id="profit-save-success-title">Profit successfully saved</h3>
+            <p><strong>{pesoFormatter.format(savedProfitAmount)}</strong> has been added to your profit investment records.</p>
+            <button type="button" onClick={() => setSavedProfitAmount(null)}>Done</button>
+          </section>
+        </div>
+      ) : null}
     </section>
   )
 }
@@ -491,7 +649,15 @@ function AnalyticsView() {
   const pageSize = 10
   const sales = useQuery(api.historysale.list) ?? []
   const profitRecords = useQuery(api.profit.list) ?? []
+  const updateSale = useMutation(api.historysale.update)
+  const removeSale = useMutation(api.historysale.remove)
   const [selectedPage, setSelectedPage] = useState(1)
+  const [pendingEditSale, setPendingEditSale] = useState(null)
+  const [editingSale, setEditingSale] = useState(null)
+  const [pendingDeleteSale, setPendingDeleteSale] = useState(null)
+  const [isSavingSale, setIsSavingSale] = useState(false)
+  const [isDeletingSale, setIsDeletingSale] = useState(false)
+  const [saleError, setSaleError] = useState('')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [reportOpen, setReportOpen] = useState(false)
@@ -516,6 +682,51 @@ function AnalyticsView() {
     .filter((record) => record._creationTime >= startTimestamp && record._creationTime <= endTimestamp)
     .reduce((sum, record) => sum + record.totalProfit, 0)
   const reportRevenue = reportGrandTotal - reportInvestment
+
+  const confirmSaleEdit = () => {
+    if (!pendingEditSale) return
+    setEditingSale(pendingEditSale)
+    setPendingEditSale(null)
+    setSaleError('')
+  }
+
+  const saveSale = async (event) => {
+    event.preventDefault()
+    if (!editingSale) return
+    setIsSavingSale(true)
+    setSaleError('')
+    const formData = new FormData(event.currentTarget)
+
+    try {
+      await updateSale({
+        id: editingSale._id,
+        date: new Date(`${formData.get('date')}T12:00:00`).getTime(),
+        productName: formData.get('productName').trim(),
+        eachPrice: Number(formData.get('eachPrice')),
+        totalQty: Number(formData.get('totalQty')),
+      })
+      setEditingSale(null)
+    } catch (error) {
+      setSaleError(error instanceof Error ? error.message : 'Unable to update sale record.')
+    } finally {
+      setIsSavingSale(false)
+    }
+  }
+
+  const deleteSale = async () => {
+    if (!pendingDeleteSale) return
+    setIsDeletingSale(true)
+    setSaleError('')
+
+    try {
+      await removeSale({ id: pendingDeleteSale._id })
+      setPendingDeleteSale(null)
+    } catch (error) {
+      setSaleError(error instanceof Error ? error.message : 'Unable to delete sale record.')
+    } finally {
+      setIsDeletingSale(false)
+    }
+  }
 
   const generateReport = (event) => {
     event.preventDefault()
@@ -551,7 +762,7 @@ function AnalyticsView() {
       <div className="admin-card inventory-table-card analytics-table-card">
         <div className="analytics-table-heading"><div><h3>Sales History</h3><p>Live records from the Convex historysale table</p></div><span>{sales.length} records</span></div>
         <table className="inventory-table analytics-table">
-          <thead><tr><th>Date</th><th>Product Name</th><th>Each Price</th><th>Total Qty</th><th>Total Price</th></tr></thead>
+          <thead><tr><th>Date</th><th>Product Name</th><th>Each Price</th><th>Total Qty</th><th>Total Price</th><th>Actions</th></tr></thead>
           <tbody>{visibleSales.map((sale) => (
             <tr key={sale._id}>
               <td className="product-created" data-label="Date"><time dateTime={new Date(sale.date).toISOString()}>{productDateFormatter.format(sale.date)}</time></td>
@@ -559,6 +770,18 @@ function AnalyticsView() {
               <td data-label="Each Price">{pesoFormatter.format(sale.eachPrice)}</td>
               <td data-label="Total Qty"><span className="sale-qty">{sale.totalQty}</span></td>
               <td data-label="Total Price"><strong className="profit-amount">{pesoFormatter.format(sale.totalPrice)}</strong></td>
+              <td data-label="Actions">
+                <div className="inventory-actions">
+                  <button type="button" aria-label={`Edit sale for ${sale.productName}`} onClick={() => {
+                    setSaleError('')
+                    setPendingEditSale(sale)
+                  }}><span className="material-symbols-outlined" aria-hidden="true">edit</span></button>
+                  <button className="delete" type="button" aria-label={`Delete sale for ${sale.productName}`} onClick={() => {
+                    setSaleError('')
+                    setPendingDeleteSale(sale)
+                  }}><span className="material-symbols-outlined" aria-hidden="true">delete</span></button>
+                </div>
+              </td>
             </tr>
           ))}</tbody>
         </table>
@@ -566,6 +789,61 @@ function AnalyticsView() {
       </div>
 
       {sales.length > pageSize ? <Pagination currentPage={currentPage} totalPages={totalPages} pageStart={pageStart} pageSize={pageSize} totalItems={sales.length} onPageChange={setSelectedPage} /> : null}
+
+      {pendingEditSale ? (
+        <div className="product-modal-backdrop" role="presentation" onMouseDown={() => setPendingEditSale(null)}>
+          <section className="product-modal product-confirm-modal" role="alertdialog" aria-modal="true" aria-labelledby="sale-edit-confirm-title" aria-describedby="sale-edit-confirm-description" onMouseDown={(event) => event.stopPropagation()}>
+            <div className="product-confirm-icon" aria-hidden="true"><span className="material-symbols-outlined">edit</span></div>
+            <p className="product-success-eyebrow">CONFIRM EDIT</p>
+            <h3 id="sale-edit-confirm-title">Are you sure you want to edit this sale?</h3>
+            <p id="sale-edit-confirm-description">You are about to change the sale record for <strong>{pendingEditSale.productName}</strong>.</p>
+            <div className="product-modal-actions">
+              <button className="cancel" type="button" onClick={() => setPendingEditSale(null)}>Cancel</button>
+              <button className="save" type="button" onClick={confirmSaleEdit}>Yes, Edit Sale</button>
+            </div>
+          </section>
+        </div>
+      ) : null}
+
+      {editingSale ? (
+        <div className="product-modal-backdrop" role="presentation" onMouseDown={() => !isSavingSale && setEditingSale(null)}>
+          <section className="product-modal sale-edit-modal" role="dialog" aria-modal="true" aria-labelledby="sale-edit-title" onMouseDown={(event) => event.stopPropagation()}>
+            <div className="product-modal-header">
+              <div><p>UPDATE SALES HISTORY</p><h3 id="sale-edit-title">Edit Sale</h3></div>
+              <button type="button" disabled={isSavingSale} aria-label="Close sale form" onClick={() => setEditingSale(null)}><span className="material-symbols-outlined" aria-hidden="true">close</span></button>
+            </div>
+            <form key={editingSale._id} onSubmit={saveSale}>
+              <label>Sale Date<input name="date" type="date" defaultValue={new Date(editingSale.date - new Date(editingSale.date).getTimezoneOffset() * 60000).toISOString().slice(0, 10)} required /></label>
+              <label>Product Name<input name="productName" type="text" defaultValue={editingSale.productName} required /></label>
+              <div className="product-form-row">
+                <label>Each Price<input name="eachPrice" type="number" min="0" step="0.01" defaultValue={editingSale.eachPrice} required /></label>
+                <label>Total Qty<input name="totalQty" type="number" min="1" step="1" defaultValue={editingSale.totalQty} required /></label>
+              </div>
+              {saleError ? <p className="product-form-error" role="alert">{saleError}</p> : null}
+              <div className="product-modal-actions">
+                <button className="cancel" type="button" disabled={isSavingSale} onClick={() => setEditingSale(null)}>Cancel</button>
+                <button className="save" type="submit" disabled={isSavingSale}>{isSavingSale ? 'Saving…' : 'Save Changes'}</button>
+              </div>
+            </form>
+          </section>
+        </div>
+      ) : null}
+
+      {pendingDeleteSale ? (
+        <div className="product-modal-backdrop" role="presentation" onMouseDown={() => !isDeletingSale && setPendingDeleteSale(null)}>
+          <section className="product-modal product-confirm-modal product-delete-modal" role="alertdialog" aria-modal="true" aria-labelledby="sale-delete-confirm-title" aria-describedby="sale-delete-confirm-description" onMouseDown={(event) => event.stopPropagation()}>
+            <div className="product-delete-icon" aria-hidden="true"><span className="material-symbols-outlined">delete</span></div>
+            <p className="product-delete-eyebrow">DELETE SALE</p>
+            <h3 id="sale-delete-confirm-title">Are you sure you want to delete this sale?</h3>
+            <p id="sale-delete-confirm-description">The <strong>{pendingDeleteSale.productName}</strong> sale worth <strong>{pesoFormatter.format(pendingDeleteSale.totalPrice)}</strong> will be permanently removed.</p>
+            {saleError ? <p className="product-form-error" role="alert">{saleError}</p> : null}
+            <div className="product-modal-actions">
+              <button className="cancel" type="button" disabled={isDeletingSale} onClick={() => setPendingDeleteSale(null)}>Cancel</button>
+              <button className="delete-confirm" type="button" disabled={isDeletingSale} onClick={deleteSale}>{isDeletingSale ? 'Deleting…' : 'Yes, Delete Sale'}</button>
+            </div>
+          </section>
+        </div>
+      ) : null}
 
       {reportOpen ? (
         <div className="report-modal-backdrop" role="presentation">

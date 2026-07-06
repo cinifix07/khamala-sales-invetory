@@ -13,8 +13,9 @@ export default function Login() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [activeView, setActiveView] = useState(null)
   const [installPrompt, setInstallPrompt] = useState(null)
+  const [showIosInstallGuide, setShowIosInstallGuide] = useState(false)
   const [isInstalled, setIsInstalled] = useState(
-    () => window.matchMedia('(display-mode: standalone)').matches,
+    () => window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true,
   )
   const { signIn, signOut } = useAuthActions()
 
@@ -46,6 +47,10 @@ export default function Login() {
     }
 
     const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent)
+    if (isIos) {
+      setShowIosInstallGuide(true)
+      return
+    }
     window.alert(
       isIos
         ? 'To install: tap Share, then choose “Add to Home Screen”.'
@@ -186,6 +191,26 @@ export default function Login() {
         </footer>
       </section>
       </Unauthenticated>
+
+      {showIosInstallGuide ? (
+        <div className="ios-install-backdrop" role="presentation" onMouseDown={() => setShowIosInstallGuide(false)}>
+          <section className="ios-install-modal" role="dialog" aria-modal="true" aria-labelledby="ios-install-title" onMouseDown={(event) => event.stopPropagation()}>
+            <button className="ios-install-close" type="button" aria-label="Close installation guide" onClick={() => setShowIosInstallGuide(false)}>
+              <span className="material-symbols-outlined" aria-hidden="true">close</span>
+            </button>
+            <div className="ios-install-icon" aria-hidden="true"><span className="material-symbols-outlined">phone_iphone</span></div>
+            <p className="ios-install-eyebrow">INSTALL ON IPHONE</p>
+            <h2 id="ios-install-title">Add Khamala to your Home Screen</h2>
+            <ol>
+              <li><span>1</span><p>Open this page using <strong>Safari</strong>.</p></li>
+              <li><span>2</span><p>Tap the <strong>Share</strong> button <span className="material-symbols-outlined ios-share-icon" aria-hidden="true">ios_share</span>.</p></li>
+              <li><span>3</span><p>Scroll down and tap <strong>Add to Home Screen</strong>.</p></li>
+              <li><span>4</span><p>Tap <strong>Add</strong> to install the app.</p></li>
+            </ol>
+            <button className="ios-install-done" type="button" onClick={() => setShowIosInstallGuide(false)}>Got It</button>
+          </section>
+        </div>
+      ) : null}
     </main>
   )
 }
