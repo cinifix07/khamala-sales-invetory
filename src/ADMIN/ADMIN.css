@@ -121,12 +121,24 @@
 .inventory-eyebrow { margin: 0; color: var(--admin-gold); font-size: 11px; font-weight: 700; letter-spacing: .16em; }
 .add-product-button { display: flex; flex: 0 0 auto; align-items: center; gap: 8px; padding: 13px 18px; border: 0; border-radius: 9px; color: white; background: var(--admin-cocoa); box-shadow: 0 8px 20px rgba(37,22,14,.18); font-weight: 700; cursor: pointer; transition: transform .2s, box-shadow .2s; }
 .add-product-button:hover { transform: translateY(-2px); box-shadow: 0 12px 26px rgba(37,22,14,.24); }
-.inventory-category-filters { display: grid; grid-template-columns: repeat(3, minmax(150px, 220px)); gap: 12px; margin-bottom: 18px; }
+.inventory-category-filters { display: grid; grid-template-columns: repeat(4, minmax(150px, 220px)); gap: 12px; margin-bottom: 18px; }
 .inventory-category-filters button { position: relative; display: flex; min-height: 72px; align-items: center; gap: 12px; padding: 12px 15px; border: 1px solid #eadcd5; border-radius: 11px; color: var(--admin-muted); background: white; box-shadow: 0 4px 14px rgba(60,42,33,.045); cursor: pointer; text-align: left; transition: border-color .2s, box-shadow .2s, transform .2s; }
 .inventory-category-filters button:hover { border-color: rgba(115,92,0,.48); box-shadow: 0 7px 18px rgba(60,42,33,.09); transform: translateY(-2px); }
 .inventory-category-filters button.active { border-color: var(--admin-gold); background: #fff9e7; box-shadow: 0 6px 18px rgba(115,92,0,.12); }
 .inventory-category-filters button > .material-symbols-outlined:first-child { display: grid; width: 40px; height: 40px; flex: 0 0 40px; border-radius: 10px; color: var(--admin-gold); background: #f6edc9; font-size: 22px; place-items: center; }
 .inventory-category-filters button.active > .material-symbols-outlined:first-child { color: white; background: var(--admin-gold); }
+.inventory-category-filters button.out > .material-symbols-outlined:first-child { color: #a43128; background: #ffe7e4; }
+.inventory-category-filters button.low > .material-symbols-outlined:first-child { color: #8a5c00; background: #fff1bd; }
+.inventory-category-filters button.available > .material-symbols-outlined:first-child { color: #18753c; background: #e4f6ea; }
+.inventory-category-filters button.out.active { border-color: #c85b52; background: #fff4f2; }
+.inventory-category-filters button.low.active { border-color: #b98916; background: #fff9e7; }
+.inventory-category-filters button.available.active { border-color: #3b9360; background: #f1fbf4; }
+.inventory-category-filters button.out.active > .material-symbols-outlined:first-child { background: #a43128; }
+.inventory-category-filters button.low.active > .material-symbols-outlined:first-child { background: #8a5c00; }
+.inventory-category-filters button.available.active > .material-symbols-outlined:first-child { background: #18753c; }
+.inventory-category-filters button.out .inventory-filter-check { color: #a43128; }
+.inventory-category-filters button.low .inventory-filter-check { color: #8a5c00; }
+.inventory-category-filters button.available .inventory-filter-check { color: #18753c; }
 .inventory-category-filters button > span:nth-child(2) { display: grid; gap: 1px; }
 .inventory-category-filters strong { color: var(--admin-cocoa); font: 700 21px 'Playfair Display', serif; }
 .inventory-category-filters small { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
@@ -374,7 +386,7 @@
   .archive-filter select { width: 100%; }
   .archive-table { min-width: 650px; }
   .add-product-button { width: 100%; justify-content: center; }
-  .inventory-category-filters { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .inventory-category-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .inventory-table-card { overflow: visible; border: 0; background: transparent; box-shadow: none; }
   .inventory-table, .inventory-table tbody, .inventory-table tr, .inventory-table td { display: block; width: 100%; }
   .inventory-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }

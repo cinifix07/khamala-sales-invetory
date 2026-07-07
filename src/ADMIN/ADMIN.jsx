@@ -14,10 +14,11 @@ const navigation = [
 ]
 
 const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
-const inventoryCategoryFilters = [
-  { value: 'all', label: 'All Products', icon: 'inventory_2' },
-  { value: 'Cake', label: 'Cake', icon: 'cake' },
-  { value: 'Snacks', label: 'Snacks', icon: 'cookie' },
+const inventoryStockFilters = [
+  { value: 'all', label: 'All Stocks', icon: 'select_all' },
+  { value: 'out', label: 'Out of Stock', icon: 'remove_shopping_cart' },
+  { value: 'low', label: 'Low Stock', icon: 'warning' },
+  { value: 'available', label: 'In Stock', icon: 'inventory_2' },
 ]
 const productDateFormatter = new Intl.DateTimeFormat('en-PH', {
   dateStyle: 'medium',
@@ -268,20 +269,21 @@ function InventoryView() {
   const [deleteError, setDeleteError] = useState('')
   const [formError, setFormError] = useState('')
   const [selectedPage, setSelectedPage] = useState(1)
-  const [selectedCategory, setSelectedCategory] = useState('all')
-  const filteredProducts = selectedCategory === 'all' ? products : products.filter((product) => product.category === selectedCategory)
-  const categoryCounts = products.reduce((counts, product) => {
-    if (product.category === 'Cake') counts.Cake += 1
-    if (product.category === 'Snacks') counts.Snacks += 1
+  const [selectedStockStatus, setSelectedStockStatus] = useState('all')
+  const filteredProducts = selectedStockStatus !== 'all'
+    ? products.filter((product) => getStockStatus(product.stock).tone === selectedStockStatus)
+    : products
+  const stockCounts = products.reduce((counts, product) => {
+    counts[getStockStatus(product.stock).tone] += 1
     return counts
-  }, { Cake: 0, Snacks: 0 })
+  }, { out: 0, low: 0, available: 0 })
   const totalPages = Math.max(1, Math.ceil(filteredProducts.length / pageSize))
   const currentPage = Math.min(selectedPage, totalPages)
   const pageStart = (currentPage - 1) * pageSize
   const visibleProducts = filteredProducts.slice(pageStart, pageStart + pageSize)
 
-  const selectCategory = (category) => {
-    setSelectedCategory(category)
+  const selectStockStatus = (status) => {
+    setSelectedStockStatus(status)
     setSelectedPage(1)
   }
 
@@ -360,14 +362,14 @@ function InventoryView() {
         </button>
       </header>
 
-      <nav className="inventory-category-filters" aria-label="Filter inventory by category">
-        {inventoryCategoryFilters.map((category) => {
-          const count = category.value === 'all' ? products.length : categoryCounts[category.value]
-          const isActive = selectedCategory === category.value
+      <nav className="inventory-category-filters" aria-label="Filter inventory by stock status">
+        {inventoryStockFilters.map((status) => {
+          const isActive = selectedStockStatus === status.value
+          const count = status.value === 'all' ? products.length : stockCounts[status.value]
           return (
-            <button key={category.value} className={isActive ? 'active' : ''} type="button" aria-pressed={isActive} onClick={() => selectCategory(category.value)}>
-              <span className="material-symbols-outlined" aria-hidden="true">{category.icon}</span>
-              <span><strong>{count}</strong><small>{category.label}</small></span>
+            <button key={status.value} className={`${status.value}${isActive ? ' active' : ''}`} type="button" aria-pressed={isActive} onClick={() => selectStockStatus(status.value)}>
+              <span className="material-symbols-outlined" aria-hidden="true">{status.icon}</span>
+              <span><strong>{count}</strong><small>{status.label}</small></span>
               <span className="inventory-filter-check material-symbols-outlined" aria-hidden="true">check_circle</span>
             </button>
           )
@@ -422,7 +424,7 @@ function InventoryView() {
             ))}
           </tbody>
         </table>
-        {filteredProducts.length === 0 ? <p className="inventory-empty">{products.length === 0 ? 'No products yet. Add your first product to get started.' : `No ${selectedCategory.toLowerCase()} products found.`}</p> : null}
+        {filteredProducts.length === 0 ? <p className="inventory-empty">{products.length === 0 ? 'No products yet. Add your first product to get started.' : `No ${inventoryStockFilters.find((status) => status.value === selectedStockStatus)?.label.toLowerCase()} products found.`}</p> : null}
       </div>
 
       {filteredProducts.length > pageSize ? (
