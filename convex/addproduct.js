@@ -60,9 +60,13 @@ export const update = mutation({
 export const remove = mutation({
   args: { id: v.id('addproduct') },
   handler: async (ctx, { id }) => {
-    await requireUser(ctx)
+    const userId = await requireUser(ctx)
     const product = await ctx.db.get(id)
     if (!product) throw new Error('Product not found.')
+    const data = { ...product }
+    delete data._id
+    delete data._creationTime
+    await ctx.db.insert('archives', { source: 'addproduct', data, label: product.name ?? 'Unnamed product', deletedAt: Date.now(), deletedBy: userId })
     await ctx.db.delete(id)
   },
 })

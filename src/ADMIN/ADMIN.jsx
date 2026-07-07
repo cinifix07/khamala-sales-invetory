@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { Component, useState } from 'react'
 import { useMutation, useQuery } from 'convex/react'
 import { api } from '../../convex/_generated/api'
 import './ADMIN.css'
@@ -9,6 +9,7 @@ const navigation = [
   ['inventory_2', 'Inventory'],
   ['shopping_bag', 'Profit'],
   ['analytics', 'Analytics'],
+  ['archive', 'Archives'],
   
 ]
 
@@ -18,6 +19,29 @@ const productDateFormatter = new Intl.DateTimeFormat('en-PH', {
   timeStyle: 'short',
 })
 const pesoFormatter = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' })
+
+class ArchivesErrorBoundary extends Component {
+  state = { error: null }
+
+  static getDerivedStateFromError(error) {
+    return { error }
+  }
+
+  render() {
+    if (this.state.error) {
+      return (
+        <section className="archive-error" role="alert">
+          <span className="material-symbols-outlined" aria-hidden="true">cloud_off</span>
+          <p>ARCHIVES UNAVAILABLE</p>
+          <h2 id="archives-title">We couldn&apos;t load your archives</h2>
+          <span>Please check that Convex is running and try opening Archives again.</span>
+          <button type="button" onClick={this.props.onClose}>Close and try again</button>
+        </section>
+      )
+    }
+    return this.props.children
+  }
+}
 
 function getStockStatus(stock) {
   if (stock === 0) return { label: 'Out of Stock', tone: 'out' }
@@ -41,11 +65,19 @@ function buildChartPaths(values) {
 export default function Admin({ onSignOut }) {
   const dashboardStats = useQuery(api.historysale.dashboardStats)
   const dashboardProducts = useQuery(api.addproduct.list) ?? []
+  const inventoryAlertsPageSize = 6
   const [activeNav, setActiveNav] = useState('Dashboard')
   const [range, setRange] = useState('Monthly')
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [isArchivesOpen, setIsArchivesOpen] = useState(false)
+  const [inventoryAlertsPage, setInventoryAlertsPage] = useState(1)
 
   const selectNavigation = (label) => {
+    if (label === 'Archives') {
+      setIsArchivesOpen(true)
+      setIsMenuOpen(false)
+      return
+    }
     setActiveNav(label)
     setIsMenuOpen(false)
   }
@@ -56,6 +88,13 @@ export default function Admin({ onSignOut }) {
   const chartPaths = buildChartPaths(chartValues)
   const chartTotal = chartValues.reduce((sum, value) => sum + value, 0)
   const stockAlerts = dashboardProducts.filter((product) => product.stock <= 10).toSorted((first, second) => first.stock - second.stock)
+  const inventoryAlertsTotalPages = Math.max(1, Math.ceil(stockAlerts.length / inventoryAlertsPageSize))
+  const currentInventoryAlertsPage = Math.min(inventoryAlertsPage, inventoryAlertsTotalPages)
+  const inventoryAlertsPageStart = (currentInventoryAlertsPage - 1) * inventoryAlertsPageSize
+  const visibleStockAlerts = stockAlerts.slice(
+    inventoryAlertsPageStart,
+    inventoryAlertsPageStart + inventoryAlertsPageSize,
+  )
 
   return (
     <div className="admin-shell">
@@ -81,7 +120,7 @@ export default function Admin({ onSignOut }) {
             {navigation.map(([icon, label]) => (
               <li key={label}>
                 <button
-                  className={activeNav === label ? 'active' : ''}
+                  className={activeNav === label || (label === 'Archives' && isArchivesOpen) ? 'active' : ''}
                   type="button"
                   aria-current={activeNav === label ? 'page' : undefined}
                   onClick={() => selectNavigation(label)}
@@ -175,7 +214,7 @@ export default function Admin({ onSignOut }) {
             <table className="orders-table">
               <thead><tr><th>Product</th><th>No. of Stock</th><th>Status</th><th>Last Stock Update</th><th className="amount">Price</th></tr></thead>
               <tbody>
-                {stockAlerts.map((product) => (
+                {visibleStockAlerts.map((product) => (
                   <tr key={product._id}>
                     <td><strong className="alert-product-name">{product.name}</strong></td>
                     <td><span className={`stock-badge ${getStockStatus(product.stock).tone}`}>{product.stock}</span></td>
@@ -188,10 +227,21 @@ export default function Admin({ onSignOut }) {
             </table>
             {stockAlerts.length === 0 ? <p className="inventory-empty">All products have healthy stock levels.</p> : null}
           </div>
+          {stockAlerts.length > inventoryAlertsPageSize ? (
+            <Pagination
+              currentPage={currentInventoryAlertsPage}
+              totalPages={inventoryAlertsTotalPages}
+              pageStart={inventoryAlertsPageStart}
+              pageSize={inventoryAlertsPageSize}
+              totalItems={stockAlerts.length}
+              onPageChange={setInventoryAlertsPage}
+            />
+          ) : null}
         </section>
           </>
         )}
       </main>
+      {isArchivesOpen ? <div className="archive-modal-backdrop" role="presentation" onMouseDown={() => setIsArchivesOpen(false)}><div className="archive-modal" role="dialog" aria-modal="true" aria-labelledby="archives-title" onMouseDown={(event) => event.stopPropagation()}><ArchivesErrorBoundary onClose={() => setIsArchivesOpen(false)}><ArchivesView onClose={() => setIsArchivesOpen(false)} /></ArchivesErrorBoundary></div></div> : null}
     </div>
   )
 }
@@ -387,13 +437,13 @@ function InventoryView() {
             <div className="product-delete-icon" aria-hidden="true">
               <span className="material-symbols-outlined">delete</span>
             </div>
-            <p className="product-delete-eyebrow">DELETE PRODUCT</p>
-            <h3 id="product-delete-confirm-title">Are you sure you want to delete this product?</h3>
-            <p id="product-delete-confirm-description"><strong>{pendingDeleteProduct.name}</strong> will be permanently removed from your inventory.</p>
+            <p className="product-delete-eyebrow">ARCHIVE PRODUCT</p>
+            <h3 id="product-delete-confirm-title">Move this product to archives?</h3>
+            <p id="product-delete-confirm-description"><strong>{pendingDeleteProduct.name}</strong> will leave your inventory and can be restored later.</p>
             {deleteError ? <p className="product-form-error" role="alert">{deleteError}</p> : null}
             <div className="product-modal-actions">
               <button className="cancel" type="button" disabled={isDeleting} onClick={() => setPendingDeleteProduct(null)}>Cancel</button>
-              <button className="delete-confirm" type="button" disabled={isDeleting} onClick={deleteProduct}>{isDeleting ? 'Deleting…' : 'Yes, Delete Product'}</button>
+              <button className="delete-confirm" type="button" disabled={isDeleting} onClick={deleteProduct}>{isDeleting ? 'Archiving…' : 'Yes, Archive Product'}</button>
             </div>
           </section>
         </div>
@@ -459,10 +509,12 @@ function InventoryView() {
 }
 
 function ProfitView() {
+  const pageSize = 5
   const records = useQuery(api.profit.list) ?? []
   const addProfit = useMutation(api.profit.add)
   const updateProfit = useMutation(api.profit.update)
   const removeProfit = useMutation(api.profit.remove)
+  const [selectedPage, setSelectedPage] = useState(1)
   const [editingRecord, setEditingRecord] = useState(null)
   const [pendingEditRecord, setPendingEditRecord] = useState(null)
   const [pendingDeleteRecord, setPendingDeleteRecord] = useState(null)
@@ -473,6 +525,10 @@ function ProfitView() {
   const [deleteError, setDeleteError] = useState('')
   const [formError, setFormError] = useState('')
   const totalInvestment = records.reduce((sum, record) => sum + record.totalProfit, 0)
+  const totalPages = Math.max(1, Math.ceil(records.length / pageSize))
+  const currentPage = Math.min(selectedPage, totalPages)
+  const pageStart = (currentPage - 1) * pageSize
+  const visibleRecords = records.slice(pageStart, pageStart + pageSize)
 
   const openModal = (record = null) => {
     setEditingRecord(record)
@@ -552,9 +608,9 @@ function ProfitView() {
         <table className="inventory-table profit-table">
           <thead><tr><th>No.</th><th>Total of Profit</th><th>Date &amp; Time Added</th><th>Actions</th></tr></thead>
           <tbody>
-            {records.map((record, index) => (
+            {visibleRecords.map((record, index) => (
               <tr key={record._id}>
-                <td data-label="No.">{String(index + 1).padStart(2, '0')}</td>
+                <td data-label="No.">{String(pageStart + index + 1).padStart(2, '0')}</td>
                 <td data-label="Total of Profit"><strong className="profit-amount">₱{record.totalProfit.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</strong></td>
                 <td className="product-created" data-label="Date & Time Added"><time dateTime={new Date(record._creationTime).toISOString()}>{productDateFormatter.format(record._creationTime)}</time></td>
                 <td data-label="Actions">
@@ -572,6 +628,7 @@ function ProfitView() {
         </table>
         {records.length === 0 ? <p className="inventory-empty">No profit investments recorded yet.</p> : null}
       </div>
+      {records.length > pageSize ? <Pagination currentPage={currentPage} totalPages={totalPages} pageStart={pageStart} pageSize={pageSize} totalItems={records.length} onPageChange={setSelectedPage} /> : null}
 
       {pendingEditRecord ? (
         <div className="product-modal-backdrop" role="presentation" onMouseDown={() => setPendingEditRecord(null)}>
@@ -596,13 +653,13 @@ function ProfitView() {
             <div className="product-delete-icon" aria-hidden="true">
               <span className="material-symbols-outlined">delete</span>
             </div>
-            <p className="product-delete-eyebrow">DELETE PROFIT</p>
-            <h3 id="profit-delete-confirm-title">Are you sure you want to delete this profit?</h3>
-            <p id="profit-delete-confirm-description"><strong>{pesoFormatter.format(pendingDeleteRecord.totalProfit)}</strong> will be permanently removed from your profit records.</p>
+            <p className="product-delete-eyebrow">ARCHIVE PROFIT</p>
+            <h3 id="profit-delete-confirm-title">Move this profit record to archives?</h3>
+            <p id="profit-delete-confirm-description"><strong>{pesoFormatter.format(pendingDeleteRecord.totalProfit)}</strong> will leave your profit records and can be restored later.</p>
             {deleteError ? <p className="product-form-error" role="alert">{deleteError}</p> : null}
             <div className="product-modal-actions">
               <button className="cancel" type="button" disabled={isDeleting} onClick={() => setPendingDeleteRecord(null)}>Cancel</button>
-              <button className="delete-confirm" type="button" disabled={isDeleting} onClick={deleteProfit}>{isDeleting ? 'Deleting…' : 'Yes, Delete Profit'}</button>
+              <button className="delete-confirm" type="button" disabled={isDeleting} onClick={deleteProfit}>{isDeleting ? 'Archiving…' : 'Yes, Archive Profit'}</button>
             </div>
           </section>
         </div>
@@ -833,13 +890,13 @@ function AnalyticsView() {
         <div className="product-modal-backdrop" role="presentation" onMouseDown={() => !isDeletingSale && setPendingDeleteSale(null)}>
           <section className="product-modal product-confirm-modal product-delete-modal" role="alertdialog" aria-modal="true" aria-labelledby="sale-delete-confirm-title" aria-describedby="sale-delete-confirm-description" onMouseDown={(event) => event.stopPropagation()}>
             <div className="product-delete-icon" aria-hidden="true"><span className="material-symbols-outlined">delete</span></div>
-            <p className="product-delete-eyebrow">DELETE SALE</p>
-            <h3 id="sale-delete-confirm-title">Are you sure you want to delete this sale?</h3>
-            <p id="sale-delete-confirm-description">The <strong>{pendingDeleteSale.productName}</strong> sale worth <strong>{pesoFormatter.format(pendingDeleteSale.totalPrice)}</strong> will be permanently removed.</p>
+            <p className="product-delete-eyebrow">ARCHIVE SALE</p>
+            <h3 id="sale-delete-confirm-title">Move this sale to archives?</h3>
+            <p id="sale-delete-confirm-description">The <strong>{pendingDeleteSale.productName}</strong> sale worth <strong>{pesoFormatter.format(pendingDeleteSale.totalPrice)}</strong> can be restored later.</p>
             {saleError ? <p className="product-form-error" role="alert">{saleError}</p> : null}
             <div className="product-modal-actions">
               <button className="cancel" type="button" disabled={isDeletingSale} onClick={() => setPendingDeleteSale(null)}>Cancel</button>
-              <button className="delete-confirm" type="button" disabled={isDeletingSale} onClick={deleteSale}>{isDeletingSale ? 'Deleting…' : 'Yes, Delete Sale'}</button>
+              <button className="delete-confirm" type="button" disabled={isDeletingSale} onClick={deleteSale}>{isDeletingSale ? 'Archiving…' : 'Yes, Archive Sale'}</button>
             </div>
           </section>
         </div>
@@ -865,6 +922,65 @@ function AnalyticsView() {
           </section>
         </div>
       ) : null}
+    </section>
+  )
+}
+
+function ArchivesView({ onClose }) {
+  const archiveResults = useQuery(api.archives.list)
+  const archives = archiveResults ?? []
+  const restoreArchive = useMutation(api.archives.restore)
+  const removeArchive = useMutation(api.archives.remove)
+  const [search, setSearch] = useState('')
+  const [type, setType] = useState('all')
+  const [pendingAction, setPendingAction] = useState(null)
+  const [isWorking, setIsWorking] = useState(false)
+  const [actionError, setActionError] = useState('')
+  const typeLabels = { addproduct: 'Inventory', profit: 'Profit', historysale: 'Sale' }
+  const normalizedSearch = search.trim().toLowerCase()
+  const filteredArchives = archives.filter((item) =>
+    (type === 'all' || item.source === type) &&
+    (!normalizedSearch || item.label.toLowerCase().includes(normalizedSearch) || (typeLabels[item.source] ?? item.source).toLowerCase().includes(normalizedSearch))
+  )
+
+  const confirmAction = async () => {
+    if (!pendingAction) return
+    setIsWorking(true)
+    setActionError('')
+    try {
+      if (pendingAction.action === 'restore') await restoreArchive({ id: pendingAction.item._id })
+      else await removeArchive({ id: pendingAction.item._id })
+      setPendingAction(null)
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : 'Unable to update this archived item.')
+    } finally {
+      setIsWorking(false)
+    }
+  }
+
+  const openAction = (action, item) => {
+    setActionError('')
+    setPendingAction({ action, item })
+  }
+
+  return (
+    <section className="archive-view">
+      <header className="admin-heading inventory-heading archive-heading">
+        <div><h2 id="archives-title">Archives</h2><p>Restore deleted records or remove them permanently</p></div>
+        <div className="archive-heading-actions"><span className="admin-date">{archives.length} archived item{archives.length === 1 ? '' : 's'}</span><button type="button" aria-label="Close archives" onClick={onClose}><span className="material-symbols-outlined" aria-hidden="true">close</span></button></div>
+      </header>
+      <div className="archive-toolbar">
+        <label className="archive-search"><span className="material-symbols-outlined" aria-hidden="true">search</span><input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search archived items…" aria-label="Search archived items" /></label>
+        <label className="archive-filter"><span>Filter</span><select value={type} onChange={(event) => setType(event.target.value)}><option value="all">All tables</option><option value="addproduct">Inventory</option><option value="profit">Profit</option><option value="historysale">Sales</option></select></label>
+      </div>
+      <div className="admin-card inventory-table-card" aria-busy={archiveResults === undefined}>
+        <table className="inventory-table archive-table">
+          <thead><tr><th>Item</th><th>Original Table</th><th>Date Deleted</th><th>Actions</th></tr></thead>
+          <tbody>{filteredArchives.map((item) => <tr key={item._id}><td><strong>{item.label}</strong></td><td><span className={`archive-type ${item.source}`}>{typeLabels[item.source] ?? 'Unknown'}</span></td><td>{productDateFormatter.format(item.deletedAt)}</td><td><div className="inventory-actions"><button type="button" aria-label={`Restore ${item.label}`} title="Restore" onClick={() => openAction('restore', item)}><span className="material-symbols-outlined" aria-hidden="true">restore</span></button><button className="delete" type="button" aria-label={`Permanently delete ${item.label}`} title="Delete permanently" onClick={() => openAction('delete', item)}><span className="material-symbols-outlined" aria-hidden="true">delete_forever</span></button></div></td></tr>)}</tbody>
+        </table>
+        {archiveResults === undefined ? <div className="archive-empty" role="status"><span className="material-symbols-outlined" aria-hidden="true">hourglass_top</span><strong>Loading archives…</strong></div> : filteredArchives.length === 0 ? <div className="archive-empty"><span className="material-symbols-outlined" aria-hidden="true">inventory_2</span><strong>No archived items found</strong><p>{archives.length ? 'Try changing your search or filter.' : 'Deleted records will appear here automatically.'}</p></div> : null}
+      </div>
+      {pendingAction ? <div className="product-modal-backdrop" role="presentation" onMouseDown={() => !isWorking && setPendingAction(null)}><section className={`product-modal product-confirm-modal ${pendingAction.action === 'delete' ? 'product-delete-modal' : ''}`} role="alertdialog" aria-modal="true" aria-labelledby="archive-confirm-title" onMouseDown={(event) => event.stopPropagation()}><div className={pendingAction.action === 'delete' ? 'product-delete-icon' : 'product-confirm-icon'} aria-hidden="true"><span className="material-symbols-outlined">{pendingAction.action === 'delete' ? 'delete_forever' : 'restore'}</span></div><p className={pendingAction.action === 'delete' ? 'product-delete-eyebrow' : 'product-success-eyebrow'}>{pendingAction.action === 'delete' ? 'PERMANENT DELETE' : 'RESTORE ITEM'}</p><h3 id="archive-confirm-title">{pendingAction.action === 'delete' ? 'Delete this item permanently?' : 'Restore this item?'}</h3><p><strong>{pendingAction.item.label}</strong> {pendingAction.action === 'delete' ? 'cannot be recovered after this action.' : `will return to the ${typeLabels[pendingAction.item.source]} table.`}</p>{actionError ? <p className="product-form-error" role="alert">{actionError}</p> : null}<div className="product-modal-actions"><button className="cancel" type="button" disabled={isWorking} onClick={() => setPendingAction(null)}>Cancel</button><button className={pendingAction.action === 'delete' ? 'delete-confirm' : 'save'} type="button" disabled={isWorking} onClick={confirmAction}>{isWorking ? 'Working…' : pendingAction.action === 'delete' ? 'Yes, Delete Forever' : 'Yes, Restore Item'}</button></div></section></div> : null}
     </section>
   )
 }

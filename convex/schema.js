@@ -37,4 +37,13 @@ export default defineSchema({
     totalQty: v.optional(v.number()),
     totalPrice: v.optional(v.number()),
   }).index('date', ['date']),
+  archives: defineTable({
+    source: v.union(v.literal('addproduct'), v.literal('profit'), v.literal('historysale')),
+    data: v.any(),
+    label: v.string(),
+    deletedAt: v.number(),
+    deletedBy: v.id('users'),
+  })
+    .index('deletedAt', ['deletedAt'])
+    .index('deletedBy', ['deletedBy']),
 })

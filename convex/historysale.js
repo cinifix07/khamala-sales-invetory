@@ -144,7 +144,12 @@ export const remove = mutation({
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx)
     if (!userId) throw new Error('You must be signed in to delete a sale.')
-    if (!(await ctx.db.get(args.id))) throw new Error('Sale record not found.')
+    const sale = await ctx.db.get(args.id)
+    if (!sale) throw new Error('Sale record not found.')
+    const data = { ...sale }
+    delete data._id
+    delete data._creationTime
+    await ctx.db.insert('archives', { source: 'historysale', data, label: sale.productName ?? 'Unnamed sale', deletedAt: Date.now(), deletedBy: userId })
     await ctx.db.delete(args.id)
   },
 })

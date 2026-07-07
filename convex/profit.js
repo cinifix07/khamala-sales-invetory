@@ -44,9 +44,13 @@ export const update = mutation({
 export const remove = mutation({
   args: { id: v.id('profit') },
   handler: async (ctx, { id }) => {
-    await requireUser(ctx)
+    const userId = await requireUser(ctx)
     const record = await ctx.db.get(id)
     if (!record) throw new Error('Profit record not found.')
+    const data = { ...record }
+    delete data._id
+    delete data._creationTime
+    await ctx.db.insert('archives', { source: 'profit', data, label: `Profit ${record.totalProfit ?? 0}`, deletedAt: Date.now(), deletedBy: userId })
     await ctx.db.delete(id)
   },
 })

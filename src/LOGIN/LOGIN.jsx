@@ -142,13 +142,7 @@ export default function Login() {
               </button>
             </div>
 
-            <label className="remember-option">
-              <input type="checkbox" />
-              <span className="custom-check" aria-hidden="true">
-                <span className="material-symbols-outlined">check</span>
-              </span>
-              Remember device
-            </label>
+      
 
             {error && <p className="login-error" role="alert">{error}</p>}
 
