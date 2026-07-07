@@ -14,6 +14,11 @@ const navigation = [
 ]
 
 const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
+const inventoryCategoryFilters = [
+  { value: 'all', label: 'All Products', icon: 'inventory_2' },
+  { value: 'Cake', label: 'Cake', icon: 'cake' },
+  { value: 'Snacks', label: 'Snacks', icon: 'cookie' },
+]
 const productDateFormatter = new Intl.DateTimeFormat('en-PH', {
   dateStyle: 'medium',
   timeStyle: 'short',
@@ -263,10 +268,22 @@ function InventoryView() {
   const [deleteError, setDeleteError] = useState('')
   const [formError, setFormError] = useState('')
   const [selectedPage, setSelectedPage] = useState(1)
-  const totalPages = Math.max(1, Math.ceil(products.length / pageSize))
+  const [selectedCategory, setSelectedCategory] = useState('all')
+  const filteredProducts = selectedCategory === 'all' ? products : products.filter((product) => product.category === selectedCategory)
+  const categoryCounts = products.reduce((counts, product) => {
+    if (product.category === 'Cake') counts.Cake += 1
+    if (product.category === 'Snacks') counts.Snacks += 1
+    return counts
+  }, { Cake: 0, Snacks: 0 })
+  const totalPages = Math.max(1, Math.ceil(filteredProducts.length / pageSize))
   const currentPage = Math.min(selectedPage, totalPages)
   const pageStart = (currentPage - 1) * pageSize
-  const visibleProducts = products.slice(pageStart, pageStart + pageSize)
+  const visibleProducts = filteredProducts.slice(pageStart, pageStart + pageSize)
+
+  const selectCategory = (category) => {
+    setSelectedCategory(category)
+    setSelectedPage(1)
+  }
 
   const openProductModal = (product = null) => {
     setEditingProduct(product)
@@ -343,10 +360,19 @@ function InventoryView() {
         </button>
       </header>
 
-      <div className="inventory-summary">
-        <strong>{products.length}</strong>
-        <span>Total products</span>
-      </div>
+      <nav className="inventory-category-filters" aria-label="Filter inventory by category">
+        {inventoryCategoryFilters.map((category) => {
+          const count = category.value === 'all' ? products.length : categoryCounts[category.value]
+          const isActive = selectedCategory === category.value
+          return (
+            <button key={category.value} className={isActive ? 'active' : ''} type="button" aria-pressed={isActive} onClick={() => selectCategory(category.value)}>
+              <span className="material-symbols-outlined" aria-hidden="true">{category.icon}</span>
+              <span><strong>{count}</strong><small>{category.label}</small></span>
+              <span className="inventory-filter-check material-symbols-outlined" aria-hidden="true">check_circle</span>
+            </button>
+          )
+        })}
+      </nav>
 
       <div className="admin-card inventory-table-card">
         <table className="inventory-table">
@@ -396,12 +422,12 @@ function InventoryView() {
             ))}
           </tbody>
         </table>
-        {products.length === 0 ? <p className="inventory-empty">No products yet. Add your first product to get started.</p> : null}
+        {filteredProducts.length === 0 ? <p className="inventory-empty">{products.length === 0 ? 'No products yet. Add your first product to get started.' : `No ${selectedCategory.toLowerCase()} products found.`}</p> : null}
       </div>
 
-      {products.length > pageSize ? (
+      {filteredProducts.length > pageSize ? (
         <nav className="inventory-pagination" aria-label="Inventory pagination">
-          <p>Showing {pageStart + 1}–{Math.min(pageStart + pageSize, products.length)} of {products.length}</p>
+          <p>Showing {pageStart + 1}–{Math.min(pageStart + pageSize, filteredProducts.length)} of {filteredProducts.length}</p>
           <div>
             <button type="button" disabled={currentPage === 1} onClick={() => setSelectedPage(currentPage - 1)} aria-label="Previous page">
               <span className="material-symbols-outlined" aria-hidden="true">chevron_left</span>
