@@ -293,6 +293,7 @@ function InventoryView() {
     const formData = new FormData(event.currentTarget)
     const product = {
       name: formData.get('name').trim(),
+      category: formData.get('category'),
       stock: Number(formData.get('stock')),
       price: Number(formData.get('price')),
     }
@@ -350,13 +351,14 @@ function InventoryView() {
       <div className="admin-card inventory-table-card">
         <table className="inventory-table">
           <thead>
-            <tr><th>No.</th><th>Product Name</th><th>No. of Stock</th><th>Price</th><th>Status</th><th>Date &amp; Time Added</th><th>Stock Updated</th><th>Actions</th></tr>
+            <tr><th>No.</th><th>Product Name</th><th>Category</th><th>No. of Stock</th><th>Price</th><th>Status</th><th>Date &amp; Time Added</th><th>Stock Updated</th><th>Actions</th></tr>
           </thead>
           <tbody>
             {visibleProducts.map((product, index) => (
               <tr key={product._id}>
                 <td data-label="No.">{String(pageStart + index + 1).padStart(2, '0')}</td>
                 <td data-label="Product Name"><strong>{product.name}</strong></td>
+                <td data-label="Category"><span className={`category-badge ${product.category?.toLowerCase() ?? 'unassigned'}`}>{product.category ?? 'Unassigned'}</span></td>
                 <td data-label="No. of Stock"><span className={`stock-badge ${getStockStatus(product.stock).tone}`}>{product.stock}</span></td>
                 <td data-label="Price">₱{product.price.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</td>
                 <td data-label="Status">
@@ -463,6 +465,12 @@ function InventoryView() {
             </div>
             <form key={editingProduct?._id ?? 'new'} onSubmit={saveProduct}>
               <label>Product Name<input name="name" type="text" defaultValue={editingProduct?.name ?? ''} placeholder="e.g. Chocolate Cake" required /></label>
+              <label>Category
+                <select name="category" defaultValue={editingProduct?.category ?? 'Cake'} required>
+                  <option value="Cake">Cake</option>
+                  <option value="Snacks">Snacks</option>
+                </select>
+              </label>
               <div className="product-form-row">
                 <label>No. of Stock<input name="stock" type="number" min="0" max="1000000" step="1" defaultValue={editingProduct?.stock ?? ''} placeholder="0" required /></label>
                 <label>Price (₱)<input name="price" type="number" min="0" step="0.01" defaultValue={editingProduct?.price ?? ''} placeholder="0.00" required /></label>

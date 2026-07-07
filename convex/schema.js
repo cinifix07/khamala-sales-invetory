@@ -19,6 +19,7 @@ export default defineSchema({
     .index('username', ['username']),
   addproduct: defineTable({
     name: v.optional(v.string()),
+    category: v.optional(v.union(v.literal('Cake'), v.literal('Snacks'))),
     stock: v.optional(v.number()),
     price: v.optional(v.number()),
     createdBy: v.optional(v.id('users')),

@@ -135,6 +135,9 @@
 .stock-badge { display: inline-grid; min-width: 42px; padding: 5px 10px; border-radius: 999px; color: #18753c; background: #e4f6ea; font-size: 12px; font-weight: 700; text-align: center; }
 .stock-badge.low { color: #8a5c00; background: #fff1bd; }
 .stock-badge.out { color: #a43128; background: #ffe7e4; }
+.category-badge { display: inline-block; padding: 5px 10px; border-radius: 999px; color: #6e3d25; background: #f8e7dd; font-size: 12px; font-weight: 700; white-space: nowrap; }
+.category-badge.snacks { color: #735c00; background: #f6edc9; }
+.category-badge.unassigned { color: var(--admin-muted); background: #f1edeb; }
 .inventory-status { display: inline-flex; align-items: center; gap: 7px; padding: 6px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; white-space: nowrap; }
 .inventory-status > span { width: 7px; height: 7px; border-radius: 50%; background: currentColor; box-shadow: 0 0 0 3px rgba(255,255,255,.65); }
 .inventory-status.available { color: #18753c; background: #e4f6ea; }
@@ -261,8 +264,9 @@
 .product-modal-header button:hover { color: white; background: var(--admin-cocoa); }
 .product-modal form { display: grid; gap: 19px; padding: 24px 26px 26px; }
 .product-modal label { display: grid; gap: 8px; color: var(--admin-cocoa); font-size: 12px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
-.product-modal input { width: 100%; padding: 13px 14px; border: 1px solid #ddcec6; border-radius: 9px; outline: none; color: var(--admin-cocoa); background: #fffcfa; font-size: 15px; text-transform: none; transition: border-color .2s, box-shadow .2s; }
-.product-modal input:focus { border-color: var(--admin-gold); box-shadow: 0 0 0 3px rgba(115,92,0,.12); }
+.product-modal input, .product-modal select { width: 100%; padding: 13px 14px; border: 1px solid #ddcec6; border-radius: 9px; outline: none; color: var(--admin-cocoa); background: #fffcfa; font: 15px 'Source Sans 3', sans-serif; text-transform: none; transition: border-color .2s, box-shadow .2s; }
+.product-modal select { min-height: 49px; cursor: pointer; }
+.product-modal input:focus, .product-modal select:focus { border-color: var(--admin-gold); box-shadow: 0 0 0 3px rgba(115,92,0,.12); }
 .product-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .product-modal-actions { display: flex; justify-content: flex-end; gap: 10px; padding-top: 5px; }
 .product-modal-actions button { padding: 12px 18px; border-radius: 8px; font-weight: 700; cursor: pointer; }
@@ -294,7 +298,7 @@
 .product-modal-actions .delete-confirm { padding: 12px 18px; border: 1px solid #b52c23; border-radius: 8px; color: white; background: #b52c23; font-weight: 700; cursor: pointer; }
 .product-modal-actions .delete-confirm:hover { border-color: #922119; background: #922119; }
 .product-modal-actions .delete-confirm:disabled { cursor: wait; opacity: .65; }
-.add-product-button:focus-visible, .inventory-actions button:focus-visible, .product-modal button:focus-visible, .product-modal input:focus-visible { outline: 3px solid var(--admin-champagne); outline-offset: 2px; }
+.add-product-button:focus-visible, .inventory-actions button:focus-visible, .product-modal button:focus-visible, .product-modal input:focus-visible, .product-modal select:focus-visible { outline: 3px solid var(--admin-champagne); outline-offset: 2px; }
 
 @keyframes product-modal-in { from { opacity: 0; transform: translateY(16px) scale(.98); } to { opacity: 1; transform: none; } }
 

@@ -24,6 +24,7 @@ export const list = query({
 export const add = mutation({
   args: {
     name: v.string(),
+    category: v.union(v.literal('Cake'), v.literal('Snacks')),
     stock: v.number(),
     price: v.number(),
   },
@@ -41,6 +42,7 @@ export const update = mutation({
   args: {
     id: v.id('addproduct'),
     name: v.string(),
+    category: v.union(v.literal('Cake'), v.literal('Snacks')),
     stock: v.number(),
     price: v.number(),
   },

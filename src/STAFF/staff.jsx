@@ -50,6 +50,11 @@ const productCatalog = [
 ]
 
 const productImages = new Map(productCatalog.map((product) => [product.name.toLowerCase(), product.image]))
+const categoryFilters = [
+  { value: 'all', label: 'All Products', icon: 'grid_view' },
+  { value: 'Cake', label: 'Cake', icon: 'cake' },
+  { value: 'Snacks', label: 'Snacks', icon: 'cookie' },
+]
 const peso = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' })
 const receiptDateFormatter = new Intl.DateTimeFormat('en-PH', { dateStyle: 'medium', timeStyle: 'short' })
 
@@ -69,6 +74,7 @@ export default function Staff({ onSignOut }) {
   const checkoutProducts = useMutation(api.addproduct.checkout)
   const [order, setOrder] = useState([])
   const [search, setSearch] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState('all')
   const [checkoutMessage, setCheckoutMessage] = useState('')
   const [completedSale, setCompletedSale] = useState(null)
   const [isCheckingOut, setIsCheckingOut] = useState(false)
@@ -83,12 +89,16 @@ export default function Staff({ onSignOut }) {
     description: `${product.stock} in stock`,
     price: product.price,
     stock: product.stock,
+    category: product.category ?? 'Unassigned',
     image: productImages.get(product.name.toLowerCase()) ?? logo,
   }))
 
-  const visibleProducts = products.filter((product) =>
-    `${product.name} ${product.description}`.toLowerCase().includes(search.toLowerCase()),
-  )
+  const normalizedSearch = search.trim().toLowerCase()
+  const visibleProducts = products.filter((product) => {
+    const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory
+    const matchesSearch = `${product.name} ${product.description} ${product.category}`.toLowerCase().includes(normalizedSearch)
+    return matchesCategory && matchesSearch
+  })
   const subtotal = order.reduce((total, item) => total + item.price * item.quantity, 0)
   const tax = 0
   const total = subtotal
@@ -215,9 +225,22 @@ export default function Staff({ onSignOut }) {
                   <span className="sr-only">Search menu</span>
                   <input className="bg-transparent border-none focus:ring-0 text-body-md w-48" placeholder="Search menu..." type="search" value={search} onChange={(event) => setSearch(event.target.value)} />
                 </label>
-                <button className="staff-filter bg-surface-container-highest p-2 rounded-lg border border-outline-variant/20" type="button" aria-label="Filter menu"><span className="material-symbols-outlined">filter_list</span></button>
               </div>
             </div>
+
+            <nav className="category-filters" aria-label="Filter products by category">
+              {categoryFilters.map((category) => {
+                const count = category.value === 'all' ? products.length : products.filter((product) => product.category === category.value).length
+                const isActive = selectedCategory === category.value
+                return (
+                  <button key={category.value} className={isActive ? 'active' : ''} type="button" aria-pressed={isActive} onClick={() => setSelectedCategory(category.value)}>
+                    <span className="category-filter-icon material-symbols-outlined" aria-hidden="true">{category.icon}</span>
+                    <span><strong>{category.label}</strong><small>{count} {count === 1 ? 'item' : 'items'}</small></span>
+                    <span className="category-filter-check material-symbols-outlined" aria-hidden="true">check_circle</span>
+                  </button>
+                )
+              })}
+            </nav>
 
             <div className="product-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {visibleProducts.map((product, index) => (
@@ -229,7 +252,7 @@ export default function Staff({ onSignOut }) {
                 </button>
               ))}
               {productRecords === undefined ? <p className="product-state">Loading products…</p> : null}
-              {productRecords !== undefined && visibleProducts.length === 0 ? <p className="product-state">No products available.</p> : null}
+              {productRecords !== undefined && visibleProducts.length === 0 ? <p className="product-state">No products found in this category.</p> : null}
             </div>
           </section>
 
