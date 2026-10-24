@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useAuthActions } from '@convex-dev/auth/react'
-import { Authenticated, Unauthenticated, useQuery } from 'convex/react'
+import { Authenticated, AuthLoading, Unauthenticated, useQuery } from 'convex/react'
 import { api } from '../../convex/_generated/api'
 import '../App.css'
 import logo from '../assets/logo.png'
@@ -90,6 +90,15 @@ export default function Login() {
 
   return (
     <main className="login-page">
+      <AuthLoading>
+        <section className="welcome-card" role="status" aria-live="polite">
+          <img className="login-logo" src={logo} alt="Khamala and Kshitija Cake and Pastries" />
+          <p className="role-badge">SECURE CONNECTION</p>
+          <h1>Loading workspace</h1>
+          <p>Connecting to your sales and inventory workspace...</p>
+        </section>
+      </AuthLoading>
+
       <Authenticated>
         <SignedInView onContinue={setActiveView} />
       </Authenticated>

@@ -1,4 +1,4 @@
-import { Component, useState } from 'react'
+import { Component, useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery } from 'convex/react'
 import { api } from '../../convex/_generated/api'
 import './ADMIN.css'
@@ -25,6 +25,24 @@ const productDateFormatter = new Intl.DateTimeFormat('en-PH', {
   timeStyle: 'short',
 })
 const pesoFormatter = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' })
+const safeMoneyTotal = (records, amountOf) => records.reduce((cents, record) => cents + Math.round(amountOf(record) * 100), 0) / 100
+const manilaDateKey = () => new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'Asia/Manila', year: 'numeric', month: '2-digit', day: '2-digit',
+}).format(new Date())
+const manilaKeyFor = (timestamp) => new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'Asia/Manila', year: 'numeric', month: '2-digit', day: '2-digit',
+}).format(new Date(timestamp))
+const manilaDayStart = (dateKey) => new Date(`${dateKey}T00:00:00+08:00`).getTime()
+const dateRangeBounds = (startDate, endDate) => ({
+  start: startDate ? manilaDayStart(startDate) : -Infinity,
+  end: endDate ? manilaDayStart(endDate) + 24 * 60 * 60 * 1000 : Infinity,
+})
+const canonicalRevenueRecords = (sales, earnings) => {
+  const earningDays = new Set(earnings.map((earning) => manilaKeyFor(earning.date)))
+  const saleRecords = sales.filter((sale) => sale.recordType !== 'earning' && !earningDays.has(manilaKeyFor(sale.date)))
+  return [...saleRecords.map((sale) => ({ amount: sale.totalPrice, date: sale.date })),
+    ...earnings.map((earning) => ({ amount: Number.isInteger(earning.amountCents) ? earning.amountCents / 100 : earning.amount, date: earning.date }))]
+}
 
 class ArchivesErrorBoundary extends Component {
   state = { error: null }
@@ -42,6 +60,29 @@ class ArchivesErrorBoundary extends Component {
           <h2 id="archives-title">We couldn&apos;t load your archives</h2>
           <span>Please check that Convex is running and try opening Archives again.</span>
           <button type="button" onClick={this.props.onClose}>Close and try again</button>
+        </section>
+      )
+    }
+    return this.props.children
+  }
+}
+
+class ProfitErrorBoundary extends Component {
+  state = { error: null }
+
+  static getDerivedStateFromError(error) {
+    return { error }
+  }
+
+  render() {
+    if (this.state.error) {
+      return (
+        <section className="archive-error" role="alert">
+          <span className="material-symbols-outlined" aria-hidden="true">cloud_off</span>
+          <p>PROFIT DATA UNAVAILABLE</p>
+          <h2 id="profit-data-error-title">We couldn&apos;t load Profit Investment</h2>
+          <span>The sales service did not return the data for this page. Check the Convex deployment and try again.</span>
+          <button type="button" onClick={() => this.setState({ error: null })}>Retry</button>
         </section>
       )
     }
@@ -155,7 +196,7 @@ export default function Admin({ onSignOut }) {
       ) : null}
 
       <main className="admin-main">
-        {activeNav === 'Inventory' ? <InventoryView /> : activeNav === 'Profit' ? <ProfitView /> : activeNav === 'Analytics' ? <AnalyticsView /> : (
+        {activeNav === 'Inventory' ? <InventoryView /> : activeNav === 'Profit' ? <ProfitErrorBoundary><ProfitView /></ProfitErrorBoundary> : activeNav === 'Analytics' ? <AnalyticsView /> : (
           <>
         <header className="admin-heading">
           <div>
@@ -546,25 +587,142 @@ function InventoryView() {
 
 function ProfitView() {
   const pageSize = 5
-  const records = useQuery(api.profit.list) ?? []
+  const profitQuery = useQuery(api.profit.list)
+  const earningsQuery = useQuery(api.historysale.earningsList)
+  const records = profitQuery ?? []
+  const earnings = earningsQuery ?? []
+  const salesToday = useQuery(api.historysale.todayStats) ?? { total: 0, count: 0 }
   const addProfit = useMutation(api.profit.add)
+  const addEarning = useMutation(api.historysale.addEarning)
+  const updateEarning = useMutation(api.historysale.updateEarning)
+  const removeEarning = useMutation(api.historysale.removeEarning)
   const updateProfit = useMutation(api.profit.update)
   const removeProfit = useMutation(api.profit.remove)
   const [selectedPage, setSelectedPage] = useState(1)
+  const [activeSummary, setActiveSummary] = useState('investment')
+  const [historySearch, setHistorySearch] = useState('')
+  const [historyStartDate, setHistoryStartDate] = useState('')
+  const [historyEndDate, setHistoryEndDate] = useState('')
+  const [selectedEarning, setSelectedEarning] = useState(null)
+  const [pendingEditEarning, setPendingEditEarning] = useState(null)
+  const [pendingRemoveEarning, setPendingRemoveEarning] = useState(null)
+  const [editingEarning, setEditingEarning] = useState(null)
+  const [editEarningDate, setEditEarningDate] = useState('')
+  const [editEarningAmount, setEditEarningAmount] = useState('')
+  const [editEarningNotes, setEditEarningNotes] = useState('')
+  const [earningActionError, setEarningActionError] = useState('')
+  const [isSavingEarningEdit, setIsSavingEarningEdit] = useState(false)
+  const [isRemovingEarning, setIsRemovingEarning] = useState(false)
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false)
+  const [reportType, setReportType] = useState('investment')
+  const [reportStartDate, setReportStartDate] = useState(manilaDateKey())
+  const [reportEndDate, setReportEndDate] = useState(manilaDateKey())
+  const [reportError, setReportError] = useState('')
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false)
   const [editingRecord, setEditingRecord] = useState(null)
   const [pendingEditRecord, setPendingEditRecord] = useState(null)
   const [pendingDeleteRecord, setPendingDeleteRecord] = useState(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isEarningModalOpen, setIsEarningModalOpen] = useState(false)
   const [savedProfitAmount, setSavedProfitAmount] = useState(null)
   const [isSaving, setIsSaving] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState('')
   const [formError, setFormError] = useState('')
-  const totalInvestment = records.reduce((sum, record) => sum + record.totalProfit, 0)
-  const totalPages = Math.max(1, Math.ceil(records.length / pageSize))
+  const [earningError, setEarningError] = useState('')
+  const [isSavingEarning, setIsSavingEarning] = useState(false)
+  const [earningDate, setEarningDate] = useState(manilaDateKey)
+  const [earningAmount, setEarningAmount] = useState('')
+  const [earningNotes, setEarningNotes] = useState('')
+  const [earningToast, setEarningToast] = useState('')
+  const earningButtonRef = useRef(null)
+  const earningDialogRef = useRef(null)
+  const reportButtonRef = useRef(null)
+  const reportDialogRef = useRef(null)
+  const generatingReportRef = useRef(false)
+  const savingEarningRef = useRef(false)
+  const earningRequestIdRef = useRef(null)
+  const earningRequestSignatureRef = useRef(null)
+  const totalInvestment = safeMoneyTotal(records, (record) => record.totalProfit)
+  const historyBounds = dateRangeBounds(historyStartDate, historyEndDate)
+  const filteredInvestments = records.filter((record) => {
+    const date = record._creationTime
+    const searchMatches = !historySearch || String(record._id).toLowerCase().includes(historySearch.toLowerCase())
+    return searchMatches && date >= historyBounds.start && date < historyBounds.end
+  })
+  const filteredEarnings = earnings.filter((earning) => {
+    const search = historySearch.trim().toLowerCase()
+    const date = earning.date ?? earning._creationTime
+    return (!search || String(earning.transactionId ?? earning._id).toLowerCase().includes(search) || (earning.notes ?? '').toLowerCase().includes(search)) && date >= historyBounds.start && date < historyBounds.end
+  })
+  const visibleHistory = activeSummary === 'investment' ? filteredInvestments : filteredEarnings
+  const historyTotalAmount = activeSummary === 'investment'
+    ? safeMoneyTotal(filteredInvestments, (record) => record.totalProfit)
+    : safeMoneyTotal(filteredEarnings, (record) => Number.isInteger(record.amountCents) ? record.amountCents / 100 : record.amount)
+  const totalPages = Math.max(1, Math.ceil(visibleHistory.length / pageSize))
   const currentPage = Math.min(selectedPage, totalPages)
   const pageStart = (currentPage - 1) * pageSize
-  const visibleRecords = records.slice(pageStart, pageStart + pageSize)
+  const visibleHistoryRecords = visibleHistory.slice(pageStart, pageStart + pageSize)
+  const reportBounds = dateRangeBounds(reportStartDate, reportEndDate)
+  const reportEarnings = earnings.filter((item) => item.date >= reportBounds.start && item.date < reportBounds.end)
+  const reportInvestments = records.filter((item) => item._creationTime >= reportBounds.start && item._creationTime < reportBounds.end)
+
+  useEffect(() => {
+    if (!isEarningModalOpen) return undefined
+    const triggerButton = earningButtonRef.current
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    earningDialogRef.current?.querySelector('input')?.focus()
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape' && !savingEarningRef.current) {
+        setIsEarningModalOpen(false)
+        return
+      }
+      if (event.key === 'Tab' && earningDialogRef.current) {
+        const focusable = [...earningDialogRef.current.querySelectorAll('button:not(:disabled), input:not(:disabled), textarea:not(:disabled)')]
+        if (focusable.length === 0) return
+        const first = focusable[0]
+        const last = focusable[focusable.length - 1]
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus() }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus() }
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.body.style.overflow = previousOverflow
+      document.removeEventListener('keydown', handleKeyDown)
+      triggerButton?.focus()
+    }
+  }, [isEarningModalOpen])
+
+  useEffect(() => {
+    if (!earningToast) return undefined
+    const timeout = window.setTimeout(() => setEarningToast(''), 4200)
+    return () => window.clearTimeout(timeout)
+  }, [earningToast])
+
+  useEffect(() => {
+    if (!isReportModalOpen) return undefined
+    const triggerButton = reportButtonRef.current
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    reportDialogRef.current?.querySelector('button:not(:disabled), select, input')?.focus()
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape' && !generatingReportRef.current) { setIsReportModalOpen(false); return }
+      if (event.key === 'Tab' && reportDialogRef.current) {
+        const focusable = [...reportDialogRef.current.querySelectorAll('button:not(:disabled), select:not(:disabled), input:not(:disabled)')]
+        if (focusable.length === 0) return
+        if (event.shiftKey && document.activeElement === focusable[0]) { event.preventDefault(); focusable.at(-1).focus() }
+        else if (!event.shiftKey && document.activeElement === focusable.at(-1)) { event.preventDefault(); focusable[0].focus() }
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.body.style.overflow = previousOverflow
+      document.removeEventListener('keydown', handleKeyDown)
+      triggerButton?.focus()
+    }
+  }, [isReportModalOpen])
 
   const openModal = (record = null) => {
     setEditingRecord(record)
@@ -606,6 +764,96 @@ function ProfitView() {
     }
   }
 
+  const saveEarning = async (event) => {
+    event.preventDefault()
+    if (savingEarningRef.current) return
+    const amount = Number(earningAmount)
+    if (!Number.isFinite(amount) || amount <= 0 || !/^\d+(\.\d{1,2})?$/.test(earningAmount)) {
+      setEarningError('Enter a positive amount with no more than two decimal places.')
+      return
+    }
+    if (!earningDate) {
+      setEarningError('Select an earning date.')
+      return
+    }
+    savingEarningRef.current = true
+    setIsSavingEarning(true)
+    setEarningError('')
+    try {
+      const requestSignature = JSON.stringify([amount, earningDate, earningNotes.trim()])
+      if (!earningRequestIdRef.current || earningRequestSignatureRef.current !== requestSignature) {
+        earningRequestIdRef.current = globalThis.crypto?.randomUUID?.() ?? `earning-${Date.now()}-${Math.random().toString(36).slice(2)}`
+        earningRequestSignatureRef.current = requestSignature
+      }
+      await addEarning({
+        amount,
+        date: new Date(`${earningDate}T00:00:00+08:00`).getTime(),
+        notes: earningNotes.trim() || undefined,
+        requestId: earningRequestIdRef.current,
+      })
+      earningRequestIdRef.current = null
+      earningRequestSignatureRef.current = null
+      setIsEarningModalOpen(false)
+      setEarningToast("Today's earnings have been recorded successfully.")
+    } catch (error) {
+      setEarningError(error instanceof Error ? error.message : 'Could not save earnings. Check your connection and try again.')
+    } finally {
+      savingEarningRef.current = false
+      setIsSavingEarning(false)
+    }
+  }
+
+  const openFinancialReport = () => {
+    setReportType(activeSummary === 'investment' ? 'investment' : 'earnings')
+    setReportStartDate(manilaDateKey())
+    setReportEndDate(manilaDateKey())
+    setReportError('')
+    setIsReportModalOpen(true)
+  }
+
+  const applyReportQuickFilter = (filter) => {
+    const today = manilaDateKey()
+    const todayDate = new Date(`${today}T00:00:00+08:00`)
+    const day = 24 * 60 * 60 * 1000
+    if (filter === 'today') { setReportStartDate(today); setReportEndDate(today); return }
+    if (filter === 'yesterday') {
+      const yesterday = manilaKeyFor(todayDate.getTime() - day)
+      setReportStartDate(yesterday); setReportEndDate(yesterday); return
+    }
+    if (filter === 'last7') {
+      setReportStartDate(manilaKeyFor(todayDate.getTime() - 6 * day)); setReportEndDate(today); return
+    }
+    if (filter === 'thisMonth') {
+      setReportStartDate(`${today.slice(0, 7)}-01`); setReportEndDate(today); return
+    }
+    if (filter === 'lastMonth') {
+      const previousMonthEnd = manilaKeyFor(manilaDayStart(`${today.slice(0, 7)}-01`) - day)
+      const year = previousMonthEnd.slice(0, 4)
+      const month = previousMonthEnd.slice(5, 7)
+      const lastDay = Number(previousMonthEnd.slice(-2))
+      setReportStartDate(`${year}-${month}-01`); setReportEndDate(`${year}-${month}-${String(lastDay).padStart(2, '0')}`)
+    }
+  }
+
+  const downloadReport = async (event) => {
+    event.preventDefault()
+    if (!reportStartDate || !reportEndDate) { setReportError('Select both report dates.'); return }
+    if (reportStartDate > reportEndDate) { setReportError('The end date cannot be earlier than the start date.'); return }
+    generatingReportRef.current = true
+    setIsGeneratingReport(true)
+    setReportError('')
+    try {
+      const { downloadFinancialReport } = await import('./financialReport')
+      await downloadFinancialReport({ type: reportType, startDate: reportStartDate, endDate: reportEndDate, earnings: reportEarnings, investments: reportInvestments })
+      setIsReportModalOpen(false)
+    } catch (error) {
+      setReportError(error instanceof Error ? error.message : 'Unable to generate the financial report. Please try again.')
+    } finally {
+      generatingReportRef.current = false
+      setIsGeneratingReport(false)
+    }
+  }
+
   const deleteProfit = async () => {
     if (!pendingDeleteRecord) return
     setIsDeleting(true)
@@ -620,51 +868,153 @@ function ProfitView() {
     }
   }
 
+  const requestEarningEdit = (record) => {
+    setEarningActionError('')
+    setPendingEditEarning(record)
+  }
+
+  const confirmEarningEdit = () => {
+    if (!pendingEditEarning) return
+    setEditEarningDate(manilaKeyFor(pendingEditEarning.date ?? pendingEditEarning._creationTime))
+    setEditEarningAmount(String(Number.isInteger(pendingEditEarning.amountCents) ? pendingEditEarning.amountCents / 100 : pendingEditEarning.amount))
+    setEditEarningNotes(pendingEditEarning.notes ?? '')
+    setEarningActionError('')
+    setEditingEarning(pendingEditEarning)
+    setPendingEditEarning(null)
+  }
+
+  const saveEarningEdit = async (event) => {
+    event.preventDefault()
+    const amount = Number(editEarningAmount)
+    if (!Number.isFinite(amount) || amount <= 0 || !/^\d+(\.\d{1,2})?$/.test(editEarningAmount)) {
+      setEarningActionError('Enter a positive amount with no more than two decimal places.')
+      return
+    }
+    if (!editEarningDate) { setEarningActionError('Select an earning date.'); return }
+    setIsSavingEarningEdit(true)
+    setEarningActionError('')
+    try {
+      await updateEarning({
+        id: editingEarning._id,
+        amount,
+        date: manilaDayStart(editEarningDate),
+        notes: editEarningNotes.trim() || undefined,
+      })
+      setEditingEarning(null)
+      setEarningToast('Earnings transaction updated successfully.')
+    } catch (error) {
+      setEarningActionError(error instanceof Error ? error.message : 'Unable to update earnings. Please try again.')
+    } finally {
+      setIsSavingEarningEdit(false)
+    }
+  }
+
+  const confirmRemoveEarning = async () => {
+    if (!pendingRemoveEarning || isRemovingEarning) return
+    setIsRemovingEarning(true)
+    setEarningActionError('')
+    try {
+      await removeEarning({ id: pendingRemoveEarning._id })
+      setPendingRemoveEarning(null)
+      setEarningToast('Earnings transaction removed successfully.')
+    } catch (error) {
+      setEarningActionError(error instanceof Error ? error.message : 'Unable to remove earnings. Please try again.')
+    } finally {
+      setIsRemovingEarning(false)
+    }
+  }
+
   return (
     <section className="profit-view">
-      <header className="inventory-heading">
+      <header className="inventory-heading profit-heading">
         <div>
-          <p className="inventory-eyebrow">SHOP INVESTMENT</p>
+          <p className="inventory-eyebrow">SHOP INVESTMENT AND SALES</p>
           <h2>Profit Investment</h2>
           <p>Record and manage the profit reinvested into your shop.</p>
         </div>
-        <button className="add-product-button" type="button" onClick={() => openModal()}>
-          <span className="material-symbols-outlined" aria-hidden="true">add</span>
-          Add Profit
-        </button>
+        <div className="profit-heading-actions">
+          <button className="add-product-button" type="button" onClick={() => openModal()}>
+            <span className="material-symbols-outlined" aria-hidden="true">add</span>
+            Add Profit
+          </button>
+          <button ref={earningButtonRef} className="add-product-button secondary" type="button" onClick={() => {
+            setEarningError('')
+            setEarningDate(manilaDateKey())
+            setEarningAmount('')
+            setEarningNotes('')
+            setIsEarningModalOpen(true)
+          }}>
+            <span className="material-symbols-outlined" aria-hidden="true">add</span>
+            Add Earning Today
+          </button>
+          <button ref={reportButtonRef} className="add-product-button report-action-button" type="button" onClick={openFinancialReport}>
+            <span className="material-symbols-outlined" aria-hidden="true">picture_as_pdf</span>
+            Generate PDF Report
+          </button>
+        </div>
       </header>
 
-      <div className="profit-summary-card">
-        <span className="material-symbols-outlined" aria-hidden="true">account_balance_wallet</span>
-        <div><small>TOTAL PROFIT INVESTED</small><strong>₱{totalInvestment.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</strong></div>
-        <p>{records.length} {records.length === 1 ? 'record' : 'records'}</p>
+      <div className="profit-summary-grid">
+          <button className={`profit-summary-card profit-summary-select${activeSummary === 'investment' ? ' is-active' : ''}`} type="button" aria-pressed={activeSummary === 'investment'} onClick={() => { setActiveSummary('investment'); setSelectedPage(1) }}>
+          <span className="material-symbols-outlined" aria-hidden="true">account_balance_wallet</span>
+          <div><small>TOTAL PROFIT INVESTED</small><strong>{pesoFormatter.format(totalInvestment)}</strong></div>
+          <p>{records.length} {records.length === 1 ? 'record' : 'records'}</p>
+        </button>
+        <button className={`profit-summary-card profit-summary-select${activeSummary === 'earnings' ? ' is-active' : ''}`} type="button" aria-pressed={activeSummary === 'earnings'} onClick={() => { setActiveSummary('earnings'); setSelectedPage(1); setHistorySearch(''); setHistoryStartDate(manilaDateKey()); setHistoryEndDate(manilaDateKey()) }}>
+          <span className="material-symbols-outlined" aria-hidden="true">trending_up</span>
+          <div><small>SALES TODAY</small><strong>{pesoFormatter.format(salesToday.total)}</strong></div>
+          <p>{salesToday.count} {salesToday.count === 1 ? 'sale' : 'sales'}</p>
+        </button>
       </div>
 
       <div className="admin-card inventory-table-card">
-        <table className="inventory-table profit-table">
-          <thead><tr><th>No.</th><th>Total of Profit</th><th>Date &amp; Time Added</th><th>Actions</th></tr></thead>
-          <tbody>
-            {visibleRecords.map((record, index) => (
+        <div className="financial-history-toolbar">
+          <div><p className="inventory-eyebrow">{activeSummary === 'investment' ? 'CAPITAL HISTORY' : 'DAILY EARNINGS HISTORY'}</p><h3>{activeSummary === 'investment' ? 'Profit Investment Transactions' : 'Earnings Transactions'}</h3><p>{visibleHistory.length} transactions · {pesoFormatter.format(historyTotalAmount)} total</p></div>
+          <div className="financial-history-filters">
+            <label className="sr-only" htmlFor="financial-history-search">Search transactions</label>
+            <input id="financial-history-search" type="search" value={historySearch} placeholder={activeSummary === 'investment' ? 'Search record ID' : 'Search ID or description'} onChange={(event) => { setSelectedPage(1); setHistorySearch(event.target.value) }} />
+            <label><span>From</span><input type="date" value={historyStartDate} onChange={(event) => { setSelectedPage(1); setHistoryStartDate(event.target.value) }} /></label>
+            <label><span>To</span><input type="date" value={historyEndDate} onChange={(event) => { setSelectedPage(1); setHistoryEndDate(event.target.value) }} /></label>
+          </div>
+        </div>
+        {activeSummary === 'investment' ? (
+          <table className="inventory-table profit-table">
+            <thead><tr><th>No.</th><th>Transaction ID</th><th>Total of Profit</th><th>Date &amp; Time Added</th><th>Actions</th></tr></thead>
+            <tbody>{visibleHistoryRecords.map((record, index) => (
               <tr key={record._id}>
                 <td data-label="No.">{String(pageStart + index + 1).padStart(2, '0')}</td>
-                <td data-label="Total of Profit"><strong className="profit-amount">₱{record.totalProfit.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</strong></td>
+                <td data-label="Transaction ID"><code>{String(record._id).slice(-9)}</code></td>
+                <td data-label="Total of Profit"><strong className="profit-amount">{pesoFormatter.format(record.totalProfit)}</strong></td>
                 <td className="product-created" data-label="Date & Time Added"><time dateTime={new Date(record._creationTime).toISOString()}>{productDateFormatter.format(record._creationTime)}</time></td>
-                <td data-label="Actions">
-                  <div className="inventory-actions">
-                    <button type="button" aria-label="Edit profit record" onClick={() => setPendingEditRecord(record)}><span className="material-symbols-outlined" aria-hidden="true">edit</span></button>
-                    <button className="delete" type="button" aria-label="Delete profit record" onClick={() => {
-                      setDeleteError('')
-                      setPendingDeleteRecord(record)
-                    }}><span className="material-symbols-outlined" aria-hidden="true">delete</span></button>
-                  </div>
-                </td>
+                <td data-label="Actions"><div className="inventory-actions">
+                  <button type="button" aria-label="Edit profit record" onClick={() => setPendingEditRecord(record)}><span className="material-symbols-outlined" aria-hidden="true">edit</span></button>
+                  <button className="delete" type="button" aria-label="Delete profit record" onClick={() => { setDeleteError(''); setPendingDeleteRecord(record) }}><span className="material-symbols-outlined" aria-hidden="true">delete</span></button>
+                </div></td>
               </tr>
-            ))}
-          </tbody>
-        </table>
-        {records.length === 0 ? <p className="inventory-empty">No profit investments recorded yet.</p> : null}
+            ))}</tbody>
+          </table>
+        ) : (
+          <table className="inventory-table profit-table earnings-table">
+            <thead><tr><th>No.</th><th>Date</th><th>Description</th><th>Amount</th><th>Details</th><th>Actions</th></tr></thead>
+            <tbody>{visibleHistoryRecords.map((record, index) => (
+              <tr key={record._id}>
+                <td data-label="No.">{String(pageStart + index + 1).padStart(2, '0')}</td>
+                <td className="product-created" data-label="Date"><time dateTime={new Date(record.date ?? record._creationTime).toISOString()}>{productDateFormatter.format(record.date ?? record._creationTime)}</time></td>
+                <td data-label="Description">{record.notes || 'Daily earnings'}</td>
+                <td data-label="Amount"><strong className="profit-amount">{pesoFormatter.format(Number.isInteger(record.amountCents) ? record.amountCents / 100 : record.amount)}</strong></td>
+                <td data-label="Details"><button className="financial-details-button" type="button" onClick={() => setSelectedEarning(record)}>View details</button></td>
+                <td data-label="Actions"><div className="inventory-actions earning-row-actions">
+                  <button type="button" aria-label={`Edit earnings transaction ${record.transactionId ?? record._id}`} onClick={() => requestEarningEdit(record)}><span className="material-symbols-outlined" aria-hidden="true">edit</span></button>
+                  <button className="delete" type="button" aria-label={`Remove earnings transaction ${record.transactionId ?? record._id}`} onClick={() => { setEarningActionError(''); setPendingRemoveEarning(record) }}><span className="material-symbols-outlined" aria-hidden="true">delete</span></button>
+                </div></td>
+              </tr>
+            ))}</tbody>
+          </table>
+        )}
+        {(activeSummary === 'investment' ? profitQuery === undefined : earningsQuery === undefined) ? <p className="inventory-empty">Loading transactions…</p> : null}
+        {visibleHistory.length === 0 && profitQuery !== undefined && earningsQuery !== undefined ? <p className="inventory-empty">No {activeSummary === 'investment' ? 'profit investments' : 'earnings'} match these filters.</p> : null}
       </div>
-      {records.length > pageSize ? <Pagination currentPage={currentPage} totalPages={totalPages} pageStart={pageStart} pageSize={pageSize} totalItems={records.length} onPageChange={setSelectedPage} /> : null}
+      {visibleHistory.length > pageSize ? <Pagination currentPage={currentPage} totalPages={totalPages} pageStart={pageStart} pageSize={pageSize} totalItems={visibleHistory.length} onPageChange={setSelectedPage} /> : null}
 
       {pendingEditRecord ? (
         <div className="product-modal-backdrop" role="presentation" onMouseDown={() => setPendingEditRecord(null)}>
@@ -721,6 +1071,108 @@ function ProfitView() {
         </div>
       ) : null}
 
+      {isEarningModalOpen ? (
+        <div className="earning-modal-backdrop" role="presentation" onMouseDown={() => !isSavingEarning && setIsEarningModalOpen(false)}>
+          <section ref={earningDialogRef} className="earning-modal" role="dialog" aria-modal="true" aria-labelledby="earning-modal-title" aria-describedby="earning-modal-subtitle" onMouseDown={(event) => event.stopPropagation()}>
+            <header className="earning-modal-header">
+              <div className="earning-modal-heading">
+                <span className="material-symbols-outlined" aria-hidden="true">monitoring</span>
+                <div><h3 id="earning-modal-title">Add Today&apos;s Earnings</h3><p id="earning-modal-subtitle">Record your shop&apos;s daily sales and earnings.</p></div>
+              </div>
+              <button className="earning-modal-close" type="button" aria-label="Close earnings form" disabled={isSavingEarning} onClick={() => setIsEarningModalOpen(false)}><span className="material-symbols-outlined" aria-hidden="true">close</span></button>
+            </header>
+            <form className="earning-form" onSubmit={saveEarning} noValidate>
+              <label className="earning-field">Date
+                <input type="date" value={earningDate} max={manilaDateKey()} required onChange={(event) => setEarningDate(event.target.value)} aria-invalid={Boolean(earningError && !earningDate)} />
+              </label>
+              <label className="earning-field">Earnings Amount (₱)
+                <span className="earning-currency-input"><span aria-hidden="true">₱</span><input inputMode="decimal" type="number" min="0.01" step="0.01" value={earningAmount} placeholder="0.00" required onChange={(event) => setEarningAmount(event.target.value)} aria-invalid={Boolean(earningError && (!earningAmount || Number(earningAmount) <= 0))} /></span>
+              </label>
+              <label className="earning-field">Description / Notes <span className="earning-optional">Optional</span>
+                <textarea value={earningNotes} maxLength={500} rows={4} placeholder="e.g., Total sales from today's shop operations" onChange={(event) => setEarningNotes(event.target.value)} />
+                <small className="earning-character-count">{earningNotes.length}/500</small>
+              </label>
+              {earningError ? <p className="earning-form-error" role="alert">{earningError}</p> : null}
+              <footer className="earning-modal-footer">
+                <button className="earning-cancel" type="button" disabled={isSavingEarning} onClick={() => setIsEarningModalOpen(false)}>Cancel</button>
+                <button className="earning-save" type="submit" disabled={isSavingEarning}>
+                  {isSavingEarning ? <><span className="earning-spinner" aria-hidden="true" />Saving...</> : 'Save Earnings'}
+                </button>
+              </footer>
+            </form>
+          </section>
+        </div>
+      ) : null}
+
+      {earningToast ? <div className="earning-success-toast" role="status" aria-live="polite"><span className="material-symbols-outlined" aria-hidden="true">check_circle</span>{earningToast}</div> : null}
+
+      {selectedEarning ? (
+        <div className="earning-modal-backdrop" role="presentation" onMouseDown={() => setSelectedEarning(null)}>
+          <section className="earning-modal earning-detail-modal" role="dialog" aria-modal="true" aria-labelledby="earning-detail-title" onMouseDown={(event) => event.stopPropagation()}>
+            <header className="earning-modal-header"><div className="earning-modal-heading"><span className="material-symbols-outlined" aria-hidden="true">receipt_long</span><div><h3 id="earning-detail-title">Earning Details</h3><p>Saved financial transaction</p></div></div><button className="earning-modal-close" type="button" aria-label="Close transaction details" onClick={() => setSelectedEarning(null)}><span className="material-symbols-outlined" aria-hidden="true">close</span></button></header>
+            <dl className="earning-detail-list"><div><dt>Amount</dt><dd>{pesoFormatter.format(Number.isInteger(selectedEarning.amountCents) ? selectedEarning.amountCents / 100 : selectedEarning.amount)}</dd></div><div><dt>Date</dt><dd>{productDateFormatter.format(selectedEarning.date ?? selectedEarning._creationTime)}</dd></div><div><dt>Transaction ID</dt><dd>{selectedEarning.transactionId ?? String(selectedEarning._id)}</dd></div><div><dt>Description</dt><dd>{selectedEarning.notes || 'Daily earnings'}</dd></div><div><dt>Recorded</dt><dd>{productDateFormatter.format(selectedEarning.createdAt ?? selectedEarning._creationTime)}</dd></div></dl>
+            <footer className="earning-modal-footer"><button className="earning-save" type="button" onClick={() => setSelectedEarning(null)}>Done</button></footer>
+          </section>
+        </div>
+      ) : null}
+
+      {pendingEditEarning ? (
+        <div className="product-modal-backdrop" role="presentation" onMouseDown={() => setPendingEditEarning(null)}>
+          <section className="product-modal product-confirm-modal earning-action-confirm" role="alertdialog" aria-modal="true" aria-labelledby="earning-edit-confirm-title" aria-describedby="earning-edit-confirm-description" onMouseDown={(event) => event.stopPropagation()}>
+            <div className="product-confirm-icon" aria-hidden="true"><span className="material-symbols-outlined">edit</span></div>
+            <p className="product-success-eyebrow">ADMIN CONFIRMATION</p>
+            <h3 id="earning-edit-confirm-title">Review before editing this earning</h3>
+            <p id="earning-edit-confirm-description">You are about to edit <strong>{pesoFormatter.format(Number.isInteger(pendingEditEarning.amountCents) ? pendingEditEarning.amountCents / 100 : pendingEditEarning.amount)}</strong> recorded on <strong>{productDateFormatter.format(pendingEditEarning.date ?? pendingEditEarning._creationTime)}</strong>. The linked History Sales record will be updated at the same time.</p>
+            {earningActionError ? <p className="product-form-error" role="alert">{earningActionError}</p> : null}
+            <div className="product-modal-actions"><button className="cancel" type="button" onClick={() => setPendingEditEarning(null)}>Cancel</button><button className="save" type="button" onClick={confirmEarningEdit}>Continue to Edit</button></div>
+          </section>
+        </div>
+      ) : null}
+
+      {pendingRemoveEarning ? (
+        <div className="product-modal-backdrop" role="presentation" onMouseDown={() => !isRemovingEarning && setPendingRemoveEarning(null)}>
+          <section className="product-modal product-confirm-modal product-delete-modal earning-action-confirm" role="alertdialog" aria-modal="true" aria-labelledby="earning-remove-confirm-title" aria-describedby="earning-remove-confirm-description" onMouseDown={(event) => event.stopPropagation()}>
+            <div className="product-delete-icon" aria-hidden="true"><span className="material-symbols-outlined">delete</span></div>
+            <p className="product-delete-eyebrow">ADMIN CONFIRMATION</p>
+            <h3 id="earning-remove-confirm-title">Remove this earnings transaction?</h3>
+            <p id="earning-remove-confirm-description"><strong>{pesoFormatter.format(Number.isInteger(pendingRemoveEarning.amountCents) ? pendingRemoveEarning.amountCents / 100 : pendingRemoveEarning.amount)}</strong> from <strong>{productDateFormatter.format(pendingRemoveEarning.date ?? pendingRemoveEarning._creationTime)}</strong> will be removed from Earnings and its linked History Sales record. Dashboard and report totals will update after confirmation.</p>
+            {earningActionError ? <p className="product-form-error" role="alert">{earningActionError}</p> : null}
+            <div className="product-modal-actions"><button className="cancel" type="button" disabled={isRemovingEarning} onClick={() => setPendingRemoveEarning(null)}>Cancel</button><button className="delete-confirm" type="button" disabled={isRemovingEarning} onClick={confirmRemoveEarning}>{isRemovingEarning ? 'Removing…' : 'Yes, Remove Earnings'}</button></div>
+          </section>
+        </div>
+      ) : null}
+
+      {editingEarning ? (
+        <div className="earning-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !isSavingEarningEdit) setEditingEarning(null) }}>
+          <section className="earning-modal" role="dialog" aria-modal="true" aria-labelledby="earning-edit-title" onMouseDown={(event) => event.stopPropagation()}>
+            <header className="earning-modal-header"><div className="earning-modal-heading"><span className="material-symbols-outlined" aria-hidden="true">edit_note</span><div><h3 id="earning-edit-title">Edit Earnings</h3><p>Update this transaction and its linked sales history.</p></div></div><button className="earning-modal-close" type="button" disabled={isSavingEarningEdit} aria-label="Close edit earnings form" onClick={() => setEditingEarning(null)}><span className="material-symbols-outlined" aria-hidden="true">close</span></button></header>
+            <form className="earning-form" onSubmit={saveEarningEdit} noValidate>
+              <label className="earning-field">Date<input type="date" value={editEarningDate} required onChange={(event) => setEditEarningDate(event.target.value)} aria-invalid={Boolean(earningActionError && !editEarningDate)} /></label>
+              <label className="earning-field">Earnings Amount (₱)<span className="earning-currency-input"><span aria-hidden="true">₱</span><input type="number" min="0.01" step="0.01" inputMode="decimal" value={editEarningAmount} placeholder="0.00" required onChange={(event) => setEditEarningAmount(event.target.value)} aria-invalid={Boolean(earningActionError && (!editEarningAmount || Number(editEarningAmount) <= 0))} /></span></label>
+              <label className="earning-field">Description / Notes <span className="earning-optional">Optional</span><textarea value={editEarningNotes} maxLength={500} rows={4} placeholder="Add a description for this earning" onChange={(event) => setEditEarningNotes(event.target.value)} /><small className="earning-character-count">{editEarningNotes.length}/500</small></label>
+              {earningActionError ? <p className="earning-form-error" role="alert">{earningActionError}</p> : null}
+              <footer className="earning-modal-footer"><button className="earning-cancel" type="button" disabled={isSavingEarningEdit} onClick={() => setEditingEarning(null)}>Cancel</button><button className="earning-save" type="submit" disabled={isSavingEarningEdit}>{isSavingEarningEdit ? <><span className="earning-spinner" aria-hidden="true" />Saving…</> : 'Save Changes'}</button></footer>
+            </form>
+          </section>
+        </div>
+      ) : null}
+
+      {isReportModalOpen ? (
+        <div className="earning-modal-backdrop report-selection-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !isGeneratingReport) setIsReportModalOpen(false) }}>
+          <section ref={reportDialogRef} className="earning-modal report-selection-modal" role="dialog" aria-modal="true" aria-labelledby="financial-report-title" aria-describedby="financial-report-subtitle" onMouseDown={(event) => event.stopPropagation()}>
+            <header className="earning-modal-header"><div className="earning-modal-heading"><span className="material-symbols-outlined" aria-hidden="true">picture_as_pdf</span><div><h3 id="financial-report-title">Generate Financial Report</h3><p id="financial-report-subtitle">Select a date range to generate your shop&apos;s financial report.</p></div></div><button className="earning-modal-close" type="button" aria-label="Close report form" disabled={isGeneratingReport} onClick={() => setIsReportModalOpen(false)}><span className="material-symbols-outlined" aria-hidden="true">close</span></button></header>
+            <form className="earning-form" onSubmit={downloadReport}>
+              <label className="earning-field">Report Type<select value={reportType} onChange={(event) => setReportType(event.target.value)}><option value="earnings">Earnings Report</option><option value="investment">Profit Investment Report</option><option value="combined">Combined Financial Report</option></select></label>
+              <div className="report-quick-filters" aria-label="Quick date filters">{[['today', 'Today'], ['yesterday', 'Yesterday'], ['last7', 'Last 7 Days'], ['thisMonth', 'This Month'], ['lastMonth', 'Last Month']].map(([value, label]) => <button key={value} type="button" onClick={() => applyReportQuickFilter(value)}>{label}</button>)}</div>
+              <div className="report-date-fields"><label className="earning-field">Start Date<input type="date" required value={reportStartDate} onChange={(event) => setReportStartDate(event.target.value)} /></label><label className="earning-field">End Date<input type="date" required value={reportEndDate} min={reportStartDate} onChange={(event) => setReportEndDate(event.target.value)} /></label></div>
+              <div className="report-preview-summary"><p className="inventory-eyebrow">REPORT PREVIEW</p><p>{reportStartDate && reportEndDate ? `${reportStartDate} to ${reportEndDate}` : 'Select both dates'}</p>{reportType !== 'investment' ? <span>{reportEarnings.length} earnings · {pesoFormatter.format(safeMoneyTotal(reportEarnings, (row) => Number.isInteger(row.amountCents) ? row.amountCents / 100 : row.amount))}</span> : null}{reportType !== 'earnings' ? <span>{reportInvestments.length} investments · {pesoFormatter.format(safeMoneyTotal(reportInvestments, (row) => row.totalProfit))}</span> : null}</div>
+              {reportError ? <p className="earning-form-error" role="alert">{reportError}</p> : null}
+              <footer className="earning-modal-footer"><button className="earning-cancel" type="button" disabled={isGeneratingReport} onClick={() => setIsReportModalOpen(false)}>Cancel</button><button className="earning-save" type="submit" disabled={isGeneratingReport || earningsQuery === undefined || profitQuery === undefined}>{isGeneratingReport ? <><span className="earning-spinner" aria-hidden="true" />Generating…</> : <><span className="material-symbols-outlined" aria-hidden="true">download</span>Generate &amp; Download PDF</>}</button></footer>
+            </form>
+          </section>
+        </div>
+      ) : null}
+
       {savedProfitAmount !== null ? (
         <div className="product-modal-backdrop" role="presentation" onMouseDown={() => setSavedProfitAmount(null)}>
           <section className="product-modal product-success-modal" role="dialog" aria-modal="true" aria-labelledby="profit-save-success-title" onMouseDown={(event) => event.stopPropagation()}>
@@ -741,6 +1193,7 @@ function ProfitView() {
 function AnalyticsView() {
   const pageSize = 10
   const sales = useQuery(api.historysale.list) ?? []
+  const earnings = useQuery(api.historysale.earningsList) ?? []
   const profitRecords = useQuery(api.profit.list) ?? []
   const updateSale = useMutation(api.historysale.update)
   const removeSale = useMutation(api.historysale.remove)
@@ -760,20 +1213,20 @@ function AnalyticsView() {
   const currentPage = Math.min(selectedPage, totalPages)
   const pageStart = (currentPage - 1) * pageSize
   const visibleSales = sales.slice(pageStart, pageStart + pageSize)
-  const totalInvestment = profitRecords.reduce((sum, record) => sum + record.totalProfit, 0)
-  const totalRevenue = sales.reduce((sum, sale) => sum + sale.totalPrice, 0)
+  const totalInvestment = safeMoneyTotal(profitRecords, (record) => record.totalProfit)
+  const canonicalRevenue = canonicalRevenueRecords(sales, earnings)
+  const totalRevenue = safeMoneyTotal(canonicalRevenue, (sale) => sale.amount)
   const interestRevenue = totalRevenue - totalInvestment
   const revenueTone = interestRevenue > 0 ? 'positive' : interestRevenue < 0 ? 'negative' : 'neutral'
   const revenueLabel = interestRevenue > 0 ? 'Interest Revenue' : interestRevenue < 0 ? 'Low Interest Revenue' : 'Break-even Revenue'
 
-  const startTimestamp = startDate ? new Date(`${startDate}T00:00:00`).getTime() : -Infinity
-  const endTimestamp = endDate ? new Date(`${endDate}T23:59:59.999`).getTime() : Infinity
-  const reportSales = sales.filter((sale) => sale.date >= startTimestamp && sale.date <= endTimestamp)
-  const reportGrandTotal = reportSales.reduce((sum, sale) => sum + sale.totalPrice, 0)
-  const reportTotalQty = reportSales.reduce((sum, sale) => sum + sale.totalQty, 0)
+  const { start: startTimestamp, end: endExclusive } = dateRangeBounds(startDate, endDate)
+  const reportSales = canonicalRevenue.filter((sale) => sale.date >= startTimestamp && sale.date < endExclusive)
+  const reportGrandTotal = safeMoneyTotal(reportSales, (sale) => sale.amount)
+  const reportTotalQty = reportSales.length
   const reportInvestment = profitRecords
-    .filter((record) => record._creationTime >= startTimestamp && record._creationTime <= endTimestamp)
-    .reduce((sum, record) => sum + record.totalProfit, 0)
+    .filter((record) => record._creationTime >= startTimestamp && record._creationTime < endExclusive)
+    .reduce((sum, record) => sum + Math.round(record.totalProfit * 100), 0) / 100
   const reportRevenue = reportGrandTotal - reportInvestment
 
   const confirmSaleEdit = () => {
@@ -823,7 +1276,7 @@ function AnalyticsView() {
 
   const generateReport = (event) => {
     event.preventDefault()
-    if (startDate && endDate && startTimestamp > endTimestamp) {
+    if (startDate && endDate && startDate > endDate) {
       setReportError('The start date must be before the end date.')
       return
     }
@@ -839,7 +1292,7 @@ function AnalyticsView() {
       </header>
 
       <div className="analytics-summary-grid">
-        <article><span>Gross Revenue</span><strong>{pesoFormatter.format(totalRevenue)}</strong><small>From {sales.length} sales</small></article>
+        <article><span>Gross Revenue</span><strong>{pesoFormatter.format(totalRevenue)}</strong><small>From {canonicalRevenue.length} sales and earnings transactions</small></article>
         <article><span>Profit Invested</span><strong>{pesoFormatter.format(totalInvestment)}</strong><small>Capital invested in shop</small></article>
         <article className={revenueTone}><span>{revenueLabel}</span><strong>{pesoFormatter.format(interestRevenue)}</strong><small>{interestRevenue > 0 ? 'Revenue is above investment' : interestRevenue < 0 ? 'Revenue is below investment' : 'Revenue matches investment'}</small></article>
       </div>
@@ -859,20 +1312,20 @@ function AnalyticsView() {
           <tbody>{visibleSales.map((sale) => (
             <tr key={sale._id}>
               <td className="product-created" data-label="Date"><time dateTime={new Date(sale.date).toISOString()}>{productDateFormatter.format(sale.date)}</time></td>
-              <td data-label="Product Name"><strong>{sale.productName}</strong></td>
+              <td data-label="Product Name"><strong>{sale.productName}</strong>{sale.recordType === 'earning' && sale.notes ? <small className="linked-earning-notes">{sale.notes}</small> : null}</td>
               <td data-label="Each Price">{pesoFormatter.format(sale.eachPrice)}</td>
               <td data-label="Total Qty"><span className="sale-qty">{sale.totalQty}</span></td>
               <td data-label="Total Price"><strong className="profit-amount">{pesoFormatter.format(sale.totalPrice)}</strong></td>
               <td data-label="Actions">
                 <div className="inventory-actions">
-                  <button type="button" aria-label={`Edit sale for ${sale.productName}`} onClick={() => {
+                  {sale.recordType === 'earning' ? <span className="linked-earning-label">Linked earning</span> : <><button type="button" aria-label={`Edit sale for ${sale.productName}`} onClick={() => {
                     setSaleError('')
                     setPendingEditSale(sale)
                   }}><span className="material-symbols-outlined" aria-hidden="true">edit</span></button>
                   <button className="delete" type="button" aria-label={`Delete sale for ${sale.productName}`} onClick={() => {
                     setSaleError('')
                     setPendingDeleteSale(sale)
-                  }}><span className="material-symbols-outlined" aria-hidden="true">delete</span></button>
+                  }}><span className="material-symbols-outlined" aria-hidden="true">delete</span></button></>}
                 </div>
               </td>
             </tr>
@@ -945,7 +1398,7 @@ function AnalyticsView() {
             <div className="report-paper">
               <div className="report-brand"><img src={logo} alt="" /><div><p>KHAMALA AND KSHITIJA&apos;S</p><h2 id="report-title">Sales Revenue Report</h2><span>{startDate || 'All dates'} — {endDate || 'Present'}</span></div></div>
               <div className="report-meta"><span>Generated</span><strong>{reportGeneratedAt ? productDateFormatter.format(reportGeneratedAt) : ''}</strong></div>
-              <table><thead><tr><th>Date</th><th>Product Name</th><th>Each Price</th><th>Total Qty</th><th>Total Price</th></tr></thead><tbody>{reportSales.map((sale) => <tr key={sale._id}><td>{productDateFormatter.format(sale.date)}</td><td>{sale.productName}</td><td>{pesoFormatter.format(sale.eachPrice)}</td><td>{sale.totalQty}</td><td>{pesoFormatter.format(sale.totalPrice)}</td></tr>)}</tbody></table>
+              <table><thead><tr><th>Date</th><th>Transaction</th><th>Amount</th></tr></thead><tbody>{reportSales.map((sale, index) => <tr key={`${sale.date}-${index}`}><td>{productDateFormatter.format(sale.date)}</td><td>{sale.productName ?? 'Sales revenue'}</td><td>{pesoFormatter.format(sale.amount)}</td></tr>)}</tbody></table>
               {reportSales.length === 0 ? <p className="report-empty">No sales found for this date range.</p> : null}
               <footer className="report-totals">
                 <div><span>Total Quantity</span><strong>{reportTotalQty}</strong></div>

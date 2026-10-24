@@ -6,6 +6,6 @@ import process from 'node:process'
 export default defineConfig({
   // GitHub Pages serves this project from a subdirectory, while Vercel
   // serves it from the domain root.
-  base: process.env.VERCEL ? '/' : '/khamala-sales-invetory/',
+  base: process.env.VERCEL ? '/' : '/khamala-sales-inventory/',
   plugins: [react()],
 })
